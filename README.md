@@ -1,16 +1,27 @@
-# transitapp
+# TransitApp
+Plataforma de Educación y Cultura Vial Gamificada.
 
-A new Flutter project.
+## Equipo N°2
+- Emilio Garza Díaz de León 2114753
+- Hector Gabriel Garza Pachicano 2095111
+- Gael Antonio Rivera Diego 2098502
+- Natalie Itzel Tello Diaz 2099239
+- Jesús Adrián Yeverino Rodríguez 2094771
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+## Descripción
+Aplicación móvil que transforme el aprendizaje del reglamento de tránsito en una experiencia interactiva y accesible:
+- Gestión de Identidad y Perfil de Usuario. El sistema debe permitir la personalización y el seguimiento individual (Autenticación, Perfil del Conductor Virtual).
 
-A few resources to get you started if this is your first Flutter project:
+- Módulos de aprendizaje gamificado. Un sistema dividido por niveles (ej. Señales Preventivas, Prioridades, Reglamento Local (Primera instancia México)) donde el usuario debe completar lecciones cortas e interactivas para desbloquear el siguiente nivel, similar al estilo "Duolingo".
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Quiz de evaluación interactiva. Las lecciones serán dinamicas, con diversas formas de interactuar para evitar monotonía (ej. Selección visual,  Ordenamiento lógico, situación vs.  acción).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Quiz de Validación de Módulo: Al final de cada sección temática, se ejecutará un cuestionario "sin ayudas" que el usuario debe aprobar con un porcentaje mínimo (ej. 80%) para desbloquear el siguiente mundo.
+
+- Feedback Inmediato: Al responder, el sistema validará la respuesta en tiempo real. En caso de error, desplegará una tarjeta explicativa ("Incorrecto: Esta señal indica X, no Y") antes de permitir avanzar.
+
+## Tecnologías
+- Flutter (Dart)
+- Google Firebase Authentication
+- Google Firestore
