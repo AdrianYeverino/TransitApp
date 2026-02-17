@@ -1,0 +1,33 @@
+# ----------------------------------------------------------------------
+# Configuración de Finales de Línea (LF vs CRLF)
+# ----------------------------------------------------------------------
+
+# Declarar que todos los archivos se manejen de forma automática
+# Pero forzar que al guardarse en el servidor siempre usen LF (Estándar Linux/macOS)
+* text=auto eol=lf
+
+# ----------------------------------------------------------------------
+# Excepciones para archivos específicos de Windows
+# ----------------------------------------------------------------------
+
+# Si llegas a crear scripts específicos de Windows, estos SÍ necesitan CRLF
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+
+# ----------------------------------------------------------------------
+# Archivos Binarios (Imágenes, Fuentes, etc.)
+# ----------------------------------------------------------------------
+
+# Marcamos los archivos de diseño y multimedia como binarios para que 
+# Git no intente "corregir" sus finales de línea, lo cual podría dañarlos.
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.ttf      binary
+*.otf      binary
+
+# Archivos nativos que deben tratarse como binarios
+*.jar      binary
+*.plist    binary
