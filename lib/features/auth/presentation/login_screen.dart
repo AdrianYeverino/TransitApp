@@ -10,23 +10,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // 1. Controladores para obtener el texto de los campos
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
-  // 2. Instancia del servicio de autenticación
   final AuthService _authService = AuthService();
-
-  // 3. Variable para mostrar un cargando
   bool _isLoading = false;
 
-  // Colores de alto contraste solicitados
-  final Color deepBlue = const Color(0xFF0D47A1); // Azul fuerte
-  final Color accentBlue = const Color(0xFF1976D2); // Azul medio
-  final Color lightBlue = const Color(0xFFE3F2FD); // Fondo suave para campos
+  // Colores
+  final Color deepBlue = const Color(0xFF0D47A1);
+  final Color accentBlue = const Color(0xFF1976D2);
+  final Color lightBlue = const Color(0xFFE3F2FD);
 
   void _handleLogin() async {
-    // Validar que no estén vacíos
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Por favor, llena todos los campos")),
@@ -36,30 +30,38 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // Llamar al servicio de Firebase
+    // Llamamos a Firebase
     String? result = await _authService.login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
-    setState(() => _isLoading = false);
-
-    if (result == "Success") {
-      // Aquí navegarías a la pantalla principal de TransitApp
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("¡Ingreso exitoso! Bienvenido."),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else {
-      // Feedback inmediato en caso de error (Contraseña incorrecta, etc.)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $result"),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // Verificamos si el widget sigue "vivo" antes de usar setState
+    if (mounted) {
+      setState(() => _isLoading = false);
+    
+      if (result == "Success") {
+        // 1. Mostrar mensaje de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("¡Ingreso exitoso! Redirigiendo..."),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 1), // Corta duración para que no estorbe
+          ),
+        );
+        
+        // 2. NO NAVEGAR. 
+        // Al salir de esta función, el StreamBuilder de main.dart 
+        // detectará el usuario y cambiará la pantalla a Home solito.
+      } else {
+        // Mostrar error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${result ?? 'Desconocido'}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -70,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Encabezado con diseño curvo y azul fuerte
+            // --- ENCABEZADO ---
             Container(
               height: MediaQuery.of(context).size.height * 0.35,
               width: double.infinity,
@@ -103,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
+            // --- FORMULARIO ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
               child: Column(
@@ -110,17 +113,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Text(
                     "Iniciar Sesión",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      color: deepBlue,
-                    ),
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: deepBlue),
                   ),
                   const SizedBox(height: 8),
                   const Text("Tu camino hacia una mejor cultura vial."),
                   const SizedBox(height: 40),
 
-                  // Campo de Correo
+                  // Email
                   TextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -129,15 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       filled: true,
                       fillColor: lightBlue,
                       prefixIcon: Icon(Icons.email_outlined, color: deepBlue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Campo de Contraseña
+                  // Password
                   TextField(
                     controller: _passwordController,
                     obscureText: true,
@@ -146,15 +142,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       filled: true,
                       fillColor: lightBlue,
                       prefixIcon: Icon(Icons.lock_outline, color: deepBlue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                     ),
                   ),
                   const SizedBox(height: 30),
 
-                  // Botón de Ingresar
+                  // Botón
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -164,32 +157,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         backgroundColor: deepBlue,
                         foregroundColor: Colors.white,
                         elevation: 5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              "INGRESAR",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          : const Text("INGRESAR", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   
                   const SizedBox(height: 20),
-                  
-                  // Opción de Registro (Placeholder)
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        // Aquí conectarías con la pantalla de Registro
-                        Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                         Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
                         );
                       },
                       child: Text(

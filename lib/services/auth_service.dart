@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// Importamos el modelo que creamos anteriormente
+import '../features/auth/data/models/user_model.dart'; 
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -14,20 +16,28 @@ class AuthService {
         password: password
       );
       
-      // 2. Si se creó bien, guardamos sus datos extra en Firestore
+      // 2. Si se creó bien, guardamos sus datos extra en Firestore usando el Modelo
       if (result.user != null) {
-        await _db.collection('users').doc(result.user!.uid).set({
-          'nombre': nombre,
-          'email': email,
-          'puntos_xp': 0,        // Empieza en 0
-          'nivel': 1,            // Empieza en nivel 1
-          'rol': 'conductor',
-          'fecha_registro': DateTime.now(),
-        });
+        // Creamos una instancia del modelo con los valores iniciales "limpios"
+        UserModel nuevoUsuario = UserModel(
+          uid: result.user!.uid,
+          nombre: nombre,
+          email: email,
+          nivelActual: 'Básico', // Antes era 'nivel': 1
+          subnivelActual: 1,      // Campo nuevo para tu lógica de juegos
+          xp: 0,                 // Antes era 'puntos_xp'
+          racha: 0,              // Campo nuevo para la gamificación
+          fechaRegistro: DateTime.now(),
+        );
+
+        // Enviamos a Firestore usando el método toMap() del modelo
+        await _db.collection('users').doc(nuevoUsuario.uid).set(nuevoUsuario.toMap());
       }
       return "Success";
     } on FirebaseAuthException catch (e) {
       return e.message;
+    } catch (e) {
+      return "Error inesperado: $e";
     }
   }
 
