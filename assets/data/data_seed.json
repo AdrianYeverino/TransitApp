@@ -7,7 +7,7 @@
     "orden": 2,
     "sublevels": [
       {
-        "id": "sublevels",
+        "id": "s1", 
         "titulo": "Prueba de Plantillas Complejas",
         "descripcion": "Verificación de tipos: ordenar, completar, emparejar y más.",
         "orden": 1,

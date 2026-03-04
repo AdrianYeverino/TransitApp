@@ -19,14 +19,19 @@ class SubLevelModel {
   });
 
   factory SubLevelModel.fromMap(Map<String, dynamic> map, String id) {
+    List<QuestionModel> qs = [];
+    if (map['questions'] != null) {
+      var list = map['questions'] as List;
+      qs = list.map((q) => QuestionModel.fromMap(q, q['id'] ?? '')).toList();
+    }
+
     return SubLevelModel(
       id: id,
       titulo: map['titulo'] ?? 'Subnivel sin nombre',
       descripcion: map['descripcion'] ?? '',
       orden: map['orden'] ?? 0,
-      // Leemos el campo exacto de tu captura image_6376c0.png
-      xpRecompensa: map['xp_recompensa'] ?? 50, 
-      preguntas: [], 
+      xpRecompensa: map['xp_recompensa'] ?? 50,
+      preguntas: qs, 
     );
   }
 

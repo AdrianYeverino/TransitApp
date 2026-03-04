@@ -8,6 +8,7 @@ import 'features/learning/data/services/seeder.dart';
 // Importa tus pantallas
 import 'features/auth/presentation/login_screen.dart';
 import 'features/learning/presentation/pages/home_page.dart';
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,9 +18,14 @@ void main() async {
 
   // 3. LLAMADA A TU FUNCIÓN DE CARGA
   // Ponemos un print para verlo en consola
-  print("--- Iniciando carga masiva ---");
-  await Seeder.importarContenidoDinamico();
-  print("--- Carga finalizada ---");
+  //print("--- Iniciando carga masiva ---");
+  //await Seeder.importarContenidoDinamico();
+  //print("--- Carga finalizada ---");
+
+  // 3. REPARACIÓN DE USUARIOS (Lo nuevo)
+  // Creamos la instancia y llamamos a la migración
+  final AuthService authService = AuthService(); 
+  await authService.actualizarUsuariosAntiguos();
 
   runApp(const TransitApp());
 }
