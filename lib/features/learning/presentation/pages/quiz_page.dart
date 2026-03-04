@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../data/services/learning_service.dart';
 import '../../data/models/question_model.dart';
+import 'package:transitapp/features/learning/presentation/widgets/games/quiz_router.dart';
+import 'package:transitapp/features/learning/presentation/widgets/games/components/feedback_bottom_sheet.dart'; 
 
 class QuizPage extends StatefulWidget {
   final String levelId;
   final String subLevelId;
   final String title;
+  final int xpRecompensa;
 
   const QuizPage({
     super.key, 
     required this.levelId, 
     required this.subLevelId,
     required this.title,
+    required this.xpRecompensa,
   });
 
   @override
@@ -23,18 +27,19 @@ class _QuizPageState extends State<QuizPage> {
   List<QuestionModel> _questions = [];
   bool _isLoading = true;
   int _currentIndex = 0;
+  
+  // Variable para medir el tiempo
+  late DateTime _startTime; 
 
   @override
   void initState() {
     super.initState();
+    _startTime = DateTime.now(); // Iniciamos el cronómetro al entrar
     _loadQuestions();
   }
 
-  // Descarga las preguntas al iniciar
   Future<void> _loadQuestions() async {
-    print("Buscando preguntas en: ${widget.levelId} -> ${widget.subLevelId}");
     var questions = await _service.getQuestions(widget.levelId, widget.subLevelId);
-    
     if (mounted) {
       setState(() {
         _questions = questions;
@@ -43,49 +48,82 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
-  // Lógica para avanzar o terminar
-  void _answerQuestion(int indexSeleccionado) {
+  void _answerQuestion(bool esCorrecta) {
     QuestionModel currentQ = _questions[_currentIndex];
-    bool esCorrecta = indexSeleccionado == currentQ.respuestaCorrecta;
-
-    // Feedback visual sencillo
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(esCorrecta ? "¡Correcto! 🎉" : "Incorrecto ❌. ${currentQ.feedback}"),
-      backgroundColor: esCorrecta ? Colors.green : Colors.red,
-      duration: const Duration(seconds: 1),
-    ));
-
-    // Esperar un segundo y avanzar
-    Future.delayed(const Duration(seconds: 1), () {
-      if (_currentIndex < _questions.length - 1) {
-        setState(() {
-          _currentIndex++;
-        });
-      } else {
-        // FIN DEL JUEGO
-        _showFinishDialog();
-      }
-    });
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FeedbackBottomSheet(
+        isCorrect: esCorrecta,
+        feedback: currentQ.feedback,
+        onContinue: () {
+          Navigator.pop(context); 
+          _advanceToNextQuestion();
+        },
+      ),
+    );
   }
 
-  void _showFinishDialog() {
+  void _advanceToNextQuestion() {
+    if (_currentIndex < _questions.length - 1) {
+      setState(() => _currentIndex++);
+    } else {
+      _showFinishDialog();
+    }
+  }
+
+  Future<void> _showFinishDialog() async {
+    // 1. Calculamos tiempo final
+    int segundos = DateTime.now().difference(_startTime).inSeconds;
+
+    // 2. Pantalla de carga mientras procesamos en la nube
     showDialog(
-      context: context, 
+      context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text("¡Subnivel Completado!"),
-        content: const Text("Aquí tus compañeros pondrán la pantalla de 'Ganaste XP'."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Cierra diálogo
-              Navigator.pop(context); // Vuelve al Home
-            }, 
-            child: const Text("Volver al Mapa")
-          )
-        ],
-      )
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
     );
+
+    // 3. Calculamos siguiente nivel (ej: s1 -> s2)
+    String siguienteSubId = "s2"; 
+    try {
+      int num = int.parse(widget.subLevelId.replaceAll(RegExp(r'[^0-9]'), ''));
+      siguienteSubId = 's${num + 1}';
+    } catch(e) { /* Fallback a s2 */ }
+
+    // 4. Enviamos TODO al motor de progreso
+    await _service.actualizarProgresoAlGanar(
+      xpGanada: widget.xpRecompensa,
+      idMundo: widget.levelId,
+      idSubnivel: widget.subLevelId,
+      idSiguienteSubnivel: siguienteSubId,
+      tiempoSegundos: segundos,
+    );
+
+    if (mounted) Navigator.pop(context); // Cerramos el cargando
+
+    // 5. Diálogo de éxito para el usuario
+    if (mounted) {
+      showDialog(
+        context: context, 
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("¡Excelente, Yeve! 🏆"),
+          content: Text("Completaste el nivel en $segundos segundos.\nTu progreso y racha han sido actualizados."),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Cierra diálogo
+                Navigator.pop(context); // Vuelve al mapa
+              }, 
+              child: const Text("VOLVER AL MAPA"),
+            )
+          ],
+        )
+      );
+    }
   }
 
   @override
@@ -94,74 +132,26 @@ class _QuizPageState extends State<QuizPage> {
       appBar: AppBar(title: Text(widget.title)),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator()) 
-        : _questions.isEmpty
-          ? const Center(child: Text("⚠️ No hay preguntas en este subnivel (Revisa Firebase)."))
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  // Progreso
-                  LinearProgressIndicator(
-                    value: (_currentIndex + 1) / _questions.length,
-                    minHeight: 10,
-                    backgroundColor: Colors.grey[300],
+        : Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                LinearProgressIndicator(
+                  value: (_currentIndex + 1) / _questions.length,
+                  minHeight: 10,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: QuizRouter(
+                    key: ValueKey(_questions[_currentIndex].id), 
+                    question: _questions[_currentIndex], 
+                    onAnswered: _answerQuestion, 
                   ),
-                  const SizedBox(height: 20),
-
-                  // Número de pregunta
-                  Text("Pregunta ${_currentIndex + 1} de ${_questions.length}"),
-                  const SizedBox(height: 10),
-
-                  // --- AQUÍ MOSTRAMOS LA PREGUNTA ---
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          // Si es tipo IMAGEN, la mostramos (Placeholder por ahora si es null)
-                          if (_questions[_currentIndex].tipo == 'imagen') ...[
-                             Container(
-                               height: 150,
-                               color: Colors.grey[200],
-                               child: _questions[_currentIndex].imagenUrl != null 
-                                ? Image.network(_questions[_currentIndex].imagenUrl!)
-                                : const Center(child: Icon(Icons.image, size: 50)),
-                             ),
-                             const SizedBox(height: 10),
-                          ],
-                          
-                          // Texto de la pregunta
-                          Text(
-                            _questions[_currentIndex].enunciado,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- OPCIONES DE RESPUESTA ---
-                  ...List.generate(_questions[_currentIndex].opciones.length, (index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => _answerQuestion(index),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                          ),
-                          child: Text(_questions[_currentIndex].opciones[index]),
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
     );
   }
 }

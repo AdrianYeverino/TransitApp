@@ -1,12 +1,13 @@
+// Archivo: sublevel_model.dart
 import 'question_model.dart';
 
 class SubLevelModel {
   final String id;
   final String titulo;
   final String descripcion;
-  final int orden;           // Para saber si es el 1, 2, 3...
-  final int xpRecompensa;    // Cuánta XP gana al completarlo
-  final List<QuestionModel> preguntas; // Las preguntas de este nivel
+  final int orden;
+  final int xpRecompensa;
+  final List<QuestionModel> preguntas;
 
   SubLevelModel({
     required this.id,
@@ -23,9 +24,8 @@ class SubLevelModel {
       titulo: map['titulo'] ?? 'Subnivel sin nombre',
       descripcion: map['descripcion'] ?? '',
       orden: map['orden'] ?? 0,
-      xpRecompensa: map['xp_recompensa'] ?? 50,
-      // Nota: Las preguntas se suelen cargar por separado en una subcolección,
-      // por eso aquí la iniciamos vacía por defecto.
+      // Leemos el campo exacto de tu captura image_6376c0.png
+      xpRecompensa: map['xp_recompensa'] ?? 50, 
       preguntas: [], 
     );
   }
@@ -38,8 +38,7 @@ class SubLevelModel {
       'xp_recompensa': xpRecompensa,
     };
   }
-  
-  // Método helper para añadir preguntas después de cargarlas
+
   SubLevelModel copyWith({List<QuestionModel>? preguntas}) {
     return SubLevelModel(
       id: id,

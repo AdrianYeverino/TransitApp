@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
+import 'features/learning/data/services/seeder.dart';
+
 // Importa tus pantallas
 import 'features/auth/presentation/login_screen.dart';
 import 'features/learning/presentation/pages/home_page.dart';
@@ -12,6 +14,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // 3. LLAMADA A TU FUNCIÓN DE CARGA
+  // Ponemos un print para verlo en consola
+  print("--- Iniciando carga masiva ---");
+  await Seeder.importarContenidoDinamico();
+  print("--- Carga finalizada ---");
+
   runApp(const TransitApp());
 }
 

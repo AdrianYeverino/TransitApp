@@ -1,45 +1,64 @@
 class QuestionModel {
   final String id;
-  final String enunciado;       // La pregunta en sí
-  final List<String> opciones;  // Las 3 o 4 posibles respuestas
-  final int respuestaCorrecta;  // El índice (0, 1, 2...) de la correcta
-  final String feedback;        // La explicación que sale al contestar
-  final String tipo;            // 'quiz' (texto) o 'visual' (imagen)
-  final String? imagenUrl;      // Opcional: Solo si el tipo es 'visual'
+  final String type; // Mapeado desde 'tipo'
+  final String questionText; // Mapeado desde 'enunciado'
+  final String feedback; 
+  final String? imageUrl; // Mapeado desde 'imagen_url'
+
+  // Para Quiz normal, V/F, Imagen, y Completar
+  final List<String>? options; // Mapeado desde 'opciones'
+  final int? correctAnswerIndex; // Mapeado desde 'respuesta_correcta'
+
+  // Para Selección Múltiple
+  final List<int>? correctAnswerIndexes; // Mapeado desde 'respuestas_correctas'
+
+  // Para Ordenamiento (Drag & Drop)
+  final List<String>? correctOrder; // Mapeado desde 'orden_correcto'
+
+  // Para Emparejar (Matching)
+  final Map<String, dynamic>? matchingPairs; // Mapeado desde 'parejas'
 
   QuestionModel({
-    required this.id,
-    required this.enunciado,
-    required this.opciones,
-    required this.respuestaCorrecta,
+    required this.id, 
+    required this.type, 
+    required this.questionText, 
     required this.feedback,
-    this.tipo = 'quiz',
-    this.imagenUrl,
+    this.imageUrl, 
+    this.options, 
+    this.correctAnswerIndex,
+    this.correctAnswerIndexes, 
+    this.correctOrder, 
+    this.matchingPairs,
   });
 
-  // Convierte lo que viene de Firestore (Map) a tu Objeto Dart
+  // Convierte el mapa de Firestore (Español) a Objeto Dart (Inglés)
   factory QuestionModel.fromMap(Map<String, dynamic> map, String id) {
     return QuestionModel(
       id: id,
-      enunciado: map['enunciado'] ?? '',
-      // Aseguramos que sea una lista de Strings
-      opciones: List<String>.from(map['opciones'] ?? []),
-      respuestaCorrecta: map['respuesta_correcta'] ?? 0,
-      feedback: map['feedback'] ?? '¡Bien hecho!',
-      tipo: map['tipo'] ?? 'quiz',
-      imagenUrl: map['imagen_url'],
+      type: map['tipo'] ?? 'quiz_basico',
+      questionText: map['enunciado'] ?? '',
+      feedback: map['feedback'] ?? '',
+      imageUrl: map['imagen_url'],
+      options: map['opciones'] != null ? List<String>.from(map['opciones']) : null,
+      correctAnswerIndex: map['respuesta_correcta'],
+      correctAnswerIndexes: map['respuestas_correctas'] != null ? List<int>.from(map['respuestas_correctas']) : null,
+      correctOrder: map['orden_correcto'] != null ? List<String>.from(map['orden_correcto']) : null,
+      matchingPairs: map['parejas'] != null ? Map<String, dynamic>.from(map['parejas']) : null,
     );
   }
 
-  // Convierte tu Objeto Dart a Mapa para subirlo a Firestore (si creas un editor)
+  // Convierte el Objeto Dart (Inglés) a Mapa para Firestore (Español)
   Map<String, dynamic> toMap() {
     return {
-      'enunciado': enunciado,
-      'opciones': opciones,
-      'respuesta_correcta': respuestaCorrecta,
+      'tipo': type,
+      'enunciado': questionText,
       'feedback': feedback,
-      'tipo': tipo,
-      'imagen_url': imagenUrl,
+      if (imageUrl != null) 'imagen_url': imageUrl,
+      if (options != null) 'opciones': options,
+      if (correctAnswerIndex != null) 'respuesta_correcta': correctAnswerIndex,
+      if (correctAnswerIndexes != null) 'respuestas_correctas': correctAnswerIndexes,
+      if (correctOrder != null) 'orden_correcto': correctOrder,
+      if (matchingPairs != null) 'parejas': matchingPairs,
     };
   }
 }
