@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-import 'package:transitapp/features/learning/presentation/pages/senales_preventivas_screen.dart';
-import 'package:transitapp/features/learning/presentation/pages/perfil_screen.dart';
 
-import 'features/learning/data/services/seeder.dart';
+import 'package:transitapp/features/learning/presentation/pages/perfil_screen.dart';
+// Eliminamos la importación del level_screen aquí porque ya no se usa como ruta fija
+//import 'features/learning/data/services/seeder.dart';
 
 // Importa tus pantallas
 import 'features/auth/presentation/login_screen.dart';
@@ -18,19 +18,20 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 3. LLAMADA A TU FUNCIÓN DE CARGA
-  // Ponemos un print para verlo en consola
+  // 1. CARGA MASIVA DE DATOS
+  // ¡ATENCIÓN! Córrelo así una vez para que Firebase reciba los nombres reales.
+  // Después de correrlo, ponle // a estas 3 líneas para apagarlas.
   //print("--- Iniciando carga masiva ---");
   //await Seeder.importarContenidoDinamico();
   //print("--- Carga finalizada ---");
 
-  // 3. REPARACIÓN DE USUARIOS (Lo nuevo)
-  // Creamos la instancia y llamamos a la migración
+  // 2. REPARACIÓN DE USUARIOS
   final AuthService authService = AuthService(); 
   await authService.actualizarUsuariosAntiguos();
 
   runApp(const TransitApp());
 }
+
 class TransitApp extends StatelessWidget {
   const TransitApp({super.key});
 
@@ -48,7 +49,8 @@ class TransitApp extends StatelessWidget {
       // --- AQUÍ REGISTRAMOS TUS RUTAS NUEVAS ---
       routes: {
         '/perfil': (context) => const PerfilScreen(),
-        '/moduloSenales': (context) => const SenalesPreventivasScreen(),
+        // Se eliminó la ruta '/moduloSenales' porque el HomePage ahora manda
+        // directamente a LevelScreen con los datos correctos de cada mundo.
       },
 
       // EL PORTERO (Auth Wrapper)

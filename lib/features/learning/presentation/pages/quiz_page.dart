@@ -9,6 +9,8 @@ class QuizPage extends StatefulWidget {
   final String subLevelId;
   final String title;
   final int xpRecompensa;
+  final bool isFinalExam; // <-- NUEVO: Bandera para saber si es examen
+  final String nextSubLevelId; // <-- Clave para abrir el siguiente candado
 
   const QuizPage({
     super.key, 
@@ -16,6 +18,8 @@ class QuizPage extends StatefulWidget {
     required this.subLevelId,
     required this.title,
     required this.xpRecompensa,
+    this.isFinalExam = false, // Por defecto es falso
+    required this.nextSubLevelId,
   });
 
   @override
@@ -38,8 +42,17 @@ class _QuizPageState extends State<QuizPage> {
     _loadQuestions();
   }
 
-  Future<void> _loadQuestions() async {
-    var questions = await _service.getQuestions(widget.levelId, widget.subLevelId);
+Future<void> _loadQuestions() async {
+    List<QuestionModel> questions;
+    
+    if (widget.isFinalExam) {
+      // Si es examen, llamamos a la nueva función aleatoria
+      questions = await _service.getExamenFinal(widget.levelId, preguntasPorSubnivel: 2);
+    } else {
+      // Si es lección normal, carga la de siempre
+      questions = await _service.getQuestions(widget.levelId, widget.subLevelId);
+    }
+
     if (mounted) {
       setState(() {
         _questions = questions;
@@ -74,51 +87,36 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
+// En la parte final de tu archivo:
   Future<void> _showFinishDialog() async {
-    // 1. Calculamos tiempo final
     int segundos = DateTime.now().difference(_startTime).inSeconds;
 
-    // 2. Pantalla de carga mientras procesamos en la nube
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)),
-    );
+    showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white)));
 
-    // 3. Calculamos siguiente nivel (ej: s1 -> s2)
-    String siguienteSubId = "s2"; 
-    try {
-      int num = int.parse(widget.subLevelId.replaceAll(RegExp(r'[^0-9]'), ''));
-      siguienteSubId = 's${num + 1}';
-    } catch(e) { /* Fallback a s2 */ }
-
-    // 4. Enviamos TODO al motor de progreso
     await _service.actualizarProgresoAlGanar(
       xpGanada: widget.xpRecompensa,
       idMundo: widget.levelId,
       idSubnivel: widget.subLevelId,
-      idSiguienteSubnivel: siguienteSubId,
+      idSiguienteSubnivel: widget.nextSubLevelId, // Usamos la variable directa
       tiempoSegundos: segundos,
     );
 
-    if (mounted) Navigator.pop(context); // Cerramos el cargando
+    if (mounted) Navigator.pop(context);
 
-    // 5. Diálogo de éxito para el usuario
     if (mounted) {
       showDialog(
-        context: context, 
-        barrierDismissible: false,
+        context: context, barrierDismissible: false,
         builder: (_) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text("¡Excelente, Yeve! 🏆"),
-          content: Text("Completaste el nivel en $segundos segundos.\nTu progreso y racha han sido actualizados."),
+          content: Text("Completaste la lección en $segundos segundos.\n¡Progreso guardado con éxito!"),
           actions: [
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Cierra diálogo
-                Navigator.pop(context); // Vuelve al mapa
+                Navigator.pop(context); 
+                Navigator.pop(context); 
               }, 
-              child: const Text("VOLVER AL MAPA"),
+              child: const Text("VOLVER"),
             )
           ],
         )

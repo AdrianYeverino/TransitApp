@@ -57,7 +57,7 @@ class LearningService {
     }
   }
 
-  // --- MOTOR DE PROGRESO, XP Y RACHA ---
+// --- MOTOR DE PROGRESO, XP Y RACHA (FUSIONADO) ---
   Future<void> actualizarProgresoAlGanar({
     required int xpGanada,
     required String idMundo, 
@@ -74,18 +74,32 @@ class LearningService {
       if (!doc.exists) return;
 
       final data = doc.data()!;
-      List<String> desbloqueados = List<String>.from(data['subniveles_desbloqueados'] ?? []);
+      List<String> completadas = List<String>.from(data['lecciones_completadas'] ?? []);
       
-      // 1. Lógica de XP (Penalización por repetición)
+      // 0. LÓGICA DE SALTO DE MUNDOS Y CANDADOS
       String idActual = "${idMundo}_$idSubnivel";
+      String idSiguiente = "${idMundo}_$idSiguienteSubnivel";
+      String? nuevoNivelActual;
+
+      if (idSubnivel == 'examen') {
+        if (idMundo == 'basico') {
+          idSiguiente = 'intermedio_s1'; // Desbloquea el mundo naranja
+          nuevoNivelActual = 'Intermedio';
+        } else if (idMundo == 'intermedio') {
+          idSiguiente = 'avanzado_s1'; // Desbloquea el mundo rojo
+          nuevoNivelActual = 'Avanzado';
+        }
+      }
+
+      // 1. Lógica de XP (Penalización por repetición de tu compañero)
       int xpFinal = xpGanada;
-      bool esRepeticion = desbloqueados.contains(idActual);
+      bool esRepeticion = completadas.contains(idActual);
 
       if (esRepeticion) {
         xpFinal = (xpGanada * 0.10).toInt(); // Solo 10% si ya lo pasó
       }
 
-      // 2. Lógica de Racha (Streak)
+      // 2. Lógica de Racha (Streak) original
       int rachaActual = data['racha'] ?? 0;
       int rachaMax = data['racha_maxima'] ?? 0;
       DateTime hoy = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -95,40 +109,50 @@ class LearningService {
         DateTime ultimaFecha = DateTime(ultima.year, ultima.month, ultima.day);
         int diferencia = hoy.difference(ultimaFecha).inDays;
 
-        if (diferencia == 1) rachaActual++; // Siguió el ritmo
-        else if (diferencia > 1) rachaActual = 1; // Racha rota, reinicia
+        if (diferencia == 1) rachaActual++; 
+        else if (diferencia > 1) rachaActual = 1; 
       } else {
-        rachaActual = 1; // Primer día
+        rachaActual = 1; 
       }
       if (rachaActual > rachaMax) rachaMax = rachaActual;
 
-      // 3. Lógica de Mejor Tiempo
+      // 3. Lógica de Mejor Tiempo original
       int mejorTiempoAnterior = data['mejor_tiempo'] ?? 9999;
       int nuevoMejorTiempo = (tiempoSegundos < mejorTiempoAnterior) ? tiempoSegundos : mejorTiempoAnterior;
 
-      // 4. Guardado en Firebase
-      String proximoID = "${idMundo}_$idSiguienteSubnivel";
-
-      await userRef.set({
+      // 4. Guardado en Firebase (Con candados)
+      Map<String, dynamic> updates = {
         'xp': FieldValue.increment(xpFinal),
         'lecciones_jugadas': FieldValue.increment(1),
         'racha': rachaActual,
         'racha_maxima': rachaMax,
         'mejor_tiempo': nuevoMejorTiempo,
         'ultima_partida': FieldValue.serverTimestamp(),
-        if (!esRepeticion) 'subniveles_desbloqueados': FieldValue.arrayUnion([proximoID]),
-        if (!esRepeticion) 'progreso_niveles.$idMundo': FieldValue.increment(1),
-      }, SetOptions(merge: true));
+        // Siempre registramos que completó la actual
+        'lecciones_completadas': FieldValue.arrayUnion([idActual]),
+        // Desbloqueamos la siguiente
+        'subniveles_desbloqueados': FieldValue.arrayUnion([idActual, idSiguiente]),
+      };
 
-      // 5. Verificar Logros automáticamente
+      if (nuevoNivelActual != null) {
+        updates['nivel_actual'] = nuevoNivelActual;
+      }
+      
+      if (!esRepeticion && idSubnivel != 'examen') {
+        updates['progreso_niveles.$idMundo'] = FieldValue.increment(1);
+      }
+
+      await userRef.set(updates, SetOptions(merge: true));
+
+      // 5. Verificar Logros
       final snapshotActualizado = await userRef.get();
       await verificarLogros(snapshotActualizado.data()!, user.uid);
 
     } catch (e) {
       print("❌ Error en motor de progreso: $e");
     }
-  } 
-
+  }
+  
   // --- MOTOR DE LOGROS GLOBALES ---
   Future<void> verificarLogros(Map<String, dynamic> userData, String userId) async {
     try {
@@ -162,6 +186,41 @@ class LearningService {
       }
     } catch (e) {
       print("❌ Error en motor de logros: $e");
+    }
+  }
+
+  // Nueva función para generar exámenes finales dinámicos
+  Future<List<QuestionModel>> getExamenFinal(String levelId, {int preguntasPorSubnivel = 2}) async {
+    List<QuestionModel> examenFinal = [];
+    
+    try {
+      // 1. Obtenemos todos los subniveles de ese mundo
+      var sublevelsSnap = await _db.collection('content')
+          .doc(levelId)
+          .collection('sublevels')
+          .get();
+
+      // 2. Recorremos cada subnivel
+      for (var subDoc in sublevelsSnap.docs) {
+        // Obtenemos sus preguntas
+        var qSnap = await subDoc.reference.collection('questions').get();
+        var questions = qSnap.docs.map((doc) => 
+            QuestionModel.fromMap(doc.data() as Map<String, dynamic>, doc.id)
+        ).toList();
+
+        // 3. Revolvemos las preguntas de ese subnivel y tomamos 'N' cantidad
+        questions.shuffle();
+        examenFinal.addAll(questions.take(preguntasPorSubnivel));
+      }
+
+      // 4. Revolvemos el examen completo para que los temas salgan mezclados
+      examenFinal.shuffle();
+      print("🎓 Examen Final generado con ${examenFinal.length} preguntas aleatorias.");
+      
+      return examenFinal;
+    } catch (e) {
+      print("Error generando examen final: $e");
+      return [];
     }
   }
 }
