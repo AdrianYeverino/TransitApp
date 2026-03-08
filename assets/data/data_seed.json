@@ -1,0 +1,69 @@
+[
+  {
+    "id": "intermedio",
+    "titulo": "Nivel Intermedio",
+    "descripcion": "Reglamento de tránsito y señalización restrictiva.",
+    "color_hex": "#FFA500",
+    "orden": 2,
+    "sublevels": [
+      {
+        "id": "s1", 
+        "titulo": "Prueba de Plantillas Complejas",
+        "descripcion": "Verificación de tipos: ordenar, completar, emparejar y más.",
+        "orden": 1,
+        "xp_recompensa": 100,
+        "questions": [
+          {
+            "id": "p1",
+            "tipo": "ordenar",
+            "enunciado": "Ordena los pasos para un cambio de carril seguro:",
+            "opciones": ["Mover el vehículo", "Verificar espejos", "Poner direccional"],
+            "respuesta_correcta": ["Poner direccional", "Verificar espejos", "Mover el vehículo"],
+            "feedback": "La comunicación previa con la direccional es el paso más importante para prevenir alcances."
+          },
+          {
+            "id": "p2",
+            "tipo": "completar",
+            "enunciado": "La multa por exceso de velocidad en zona escolar es de ___ cuotas de salario mínimo.",
+            "opciones": ["10", "20", "30", "40"],
+            "respuesta_correcta": 1,
+            "feedback": "Las multas en zonas escolares son de las más altas debido al riesgo que corren los menores."
+          },
+          {
+            "id": "p3",
+            "tipo": "emparejar",
+            "enunciado": "Une la señal con su grupo correspondiente:",
+            "opciones": ["Amarillo", "Rojo", "Azul", "Preventiva", "Restrictiva", "Informativa"],
+            "respuesta_correcta": {
+              "Amarillo": "Preventiva",
+              "Rojo": "Restrictiva",
+              "Azul": "Informativa"
+            },
+            "feedback": "Los colores ayudan a identificar la prioridad de la señal a larga distancia."
+          },
+          {
+            "id": "p4",
+            "tipo": "seleccion_multiple",
+            "enunciado": "¿Qué luces son obligatorias encender bajo lluvia intensa?",
+            "opciones": ["Luces bajas", "Intermitentes", "Luces altas", "Faros de niebla"],
+            "respuesta_correcta": [0, 1, 3],
+            "feedback": "Las luces altas pueden deslumbrar a otros con el reflejo de la lluvia; las bajas e intermitentes son lo ideal."
+          },
+          {
+            "id": "p5",
+            "tipo": "opciones_imagen",
+            "enunciado": "Selecciona el icono que indica 'Cruce Ferroviario':",
+            "opciones": [
+              "https://raw.githubusercontent.com/AdrianYeverino/TransitApp-Assets/main/basicnivel/subnivel1/s1/p1/seguridad-vial.jpg",
+              "https://raw.githubusercontent.com/AdrianYeverino/TransitApp-Assets/main/basicnivel/subnivel1/s1/p1/seguridad-vial.jpg",
+              "https://raw.githubusercontent.com/AdrianYeverino/TransitApp-Assets/main/basicnivel/subnivel1/s1/p1/seguridad-vial.jpg",
+              "https://raw.githubusercontent.com/AdrianYeverino/TransitApp-Assets/main/basicnivel/subnivel1/s1/p1/seguridad-vial.jpg"
+            ],
+            "respuesta_correcta": 0,
+            "feedback": "La señal de cruz de San Andrés advierte sobre la proximidad de vías del tren."
+          }
+        ]
+      }
+    ]
+  }
+]
