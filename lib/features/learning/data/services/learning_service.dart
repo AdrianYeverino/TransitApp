@@ -205,7 +205,7 @@ class LearningService {
         // Obtenemos sus preguntas
         var qSnap = await subDoc.reference.collection('questions').get();
         var questions = qSnap.docs.map((doc) => 
-            QuestionModel.fromMap(doc.data() as Map<String, dynamic>, doc.id)
+            QuestionModel.fromMap(doc.data(), doc.id)
         ).toList();
 
         // 3. Revolvemos las preguntas de ese subnivel y tomamos 'N' cantidad

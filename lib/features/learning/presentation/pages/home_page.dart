@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'level_screen.dart'; 
+import 'dart:ui';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -229,35 +230,53 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildNivelCard({required Color color, required IconData icono, required String titulo, required String descripcion, required String progresoText, bool bloqueado = false}) {
+  Widget _buildNivelCard({
+    required Color color,
+    required IconData icono,
+    required String titulo,
+    required String descripcion,
+    required String progresoText,
+    bool bloqueado = false,
+  }) {
     return Card(
-      color: color, 
+      color: color,
       margin: const EdgeInsets.symmetric(vertical: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Stack(
-          children: [
-            Column(
+      // Le damos una forma redondeada explícita y forzamos a que el contenido no se salga (clip)
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      clipBehavior: Clip.antiAlias, 
+      child: Stack(
+        children: [
+          // 1. EL CONTENIDO REAL (Ahora el Padding está por dentro del Stack)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icono, color: Colors.white, size: 32), 
+                Icon(icono, color: Colors.white, size: 32),
                 const SizedBox(height: 8),
-                Text(titulo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)), 
+                Text(titulo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                 const SizedBox(height: 8),
-                Text(descripcion, style: const TextStyle(color: Colors.white70, fontSize: 14)), 
+                Text(descripcion, style: const TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 12),
                 Text(progresoText, style: const TextStyle(color: Colors.white, fontSize: 12)),
               ],
             ),
-            if (bloqueado) 
-              Positioned.fill(
+          ),
+          
+          // 2. EL EFECTO BLUR Y CANDADO (Solo si está bloqueado)
+          if (bloqueado)
+            Positioned.fill( // Esto hace que abarque TODA la tarjeta
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0), // Intensidad del desfoque
                 child: Container(
-                  color: Colors.black.withOpacity(0.4), 
-                  child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 48))
-                )
+                  color: Colors.black.withOpacity(0.3), // Oscurecemos un poquito el cristal
+                  child: const Center(
+                    child: Icon(Icons.lock, color: Colors.white, size: 50),
+                  ),
+                ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
