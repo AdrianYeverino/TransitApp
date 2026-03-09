@@ -57,7 +57,7 @@ class LearningService {
     }
   }
 
-// --- MOTOR DE PROGRESO, XP Y RACHA (FUSIONADO) ---
+  // --- MOTOR DE PROGRESO, XP Y RACHA ---
   Future<void> actualizarProgresoAlGanar({
     required int xpGanada,
     required String idMundo, 
@@ -83,23 +83,23 @@ class LearningService {
 
       if (idSubnivel == 'examen') {
         if (idMundo == 'basico') {
-          idSiguiente = 'intermedio_s1'; // Desbloquea el mundo naranja
+          idSiguiente = 'intermedio_s1'; 
           nuevoNivelActual = 'Intermedio';
         } else if (idMundo == 'intermedio') {
-          idSiguiente = 'avanzado_s1'; // Desbloquea el mundo rojo
+          idSiguiente = 'avanzado_s1'; 
           nuevoNivelActual = 'Avanzado';
         }
       }
 
-      // 1. Lógica de XP (Penalización por repetición de tu compañero)
+      // 1. Lógica de XP
       int xpFinal = xpGanada;
       bool esRepeticion = completadas.contains(idActual);
 
       if (esRepeticion) {
-        xpFinal = (xpGanada * 0.10).toInt(); // Solo 10% si ya lo pasó
+        xpFinal = (xpGanada * 0.10).toInt(); 
       }
 
-      // 2. Lógica de Racha (Streak) original
+      // 2. Lógica de Racha
       int rachaActual = data['racha'] ?? 0;
       int rachaMax = data['racha_maxima'] ?? 0;
       DateTime hoy = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -116,11 +116,11 @@ class LearningService {
       }
       if (rachaActual > rachaMax) rachaMax = rachaActual;
 
-      // 3. Lógica de Mejor Tiempo original
+      // 3. Lógica de Mejor Tiempo
       int mejorTiempoAnterior = data['mejor_tiempo'] ?? 9999;
       int nuevoMejorTiempo = (tiempoSegundos < mejorTiempoAnterior) ? tiempoSegundos : mejorTiempoAnterior;
 
-      // 4. Guardado en Firebase (Con candados)
+      // 4. Guardado en Firebase 
       Map<String, dynamic> updates = {
         'xp': FieldValue.increment(xpFinal),
         'lecciones_jugadas': FieldValue.increment(1),
@@ -128,9 +128,7 @@ class LearningService {
         'racha_maxima': rachaMax,
         'mejor_tiempo': nuevoMejorTiempo,
         'ultima_partida': FieldValue.serverTimestamp(),
-        // Siempre registramos que completó la actual
         'lecciones_completadas': FieldValue.arrayUnion([idActual]),
-        // Desbloqueamos la siguiente
         'subniveles_desbloqueados': FieldValue.arrayUnion([idActual, idSiguiente]),
       };
 
@@ -138,8 +136,12 @@ class LearningService {
         updates['nivel_actual'] = nuevoNivelActual;
       }
       
+      // 🛠️ AQUÍ ESTÁ LA SOLUCIÓN DE LA BASE DE DATOS: 
+      // Lo mandamos como un Mapa real de Dart para que Firebase respete la estructura.
       if (!esRepeticion && idSubnivel != 'examen') {
-        updates['progreso_niveles.$idMundo'] = FieldValue.increment(1);
+        updates['progreso_niveles'] = {
+          idMundo: FieldValue.increment(1)
+        };
       }
 
       await userRef.set(updates, SetOptions(merge: true));
@@ -189,34 +191,22 @@ class LearningService {
     }
   }
 
-  // Nueva función para generar exámenes finales dinámicos
+  // --- EXÁMENES FINALES ---
   Future<List<QuestionModel>> getExamenFinal(String levelId, {int preguntasPorSubnivel = 2}) async {
     List<QuestionModel> examenFinal = [];
     
     try {
-      // 1. Obtenemos todos los subniveles de ese mundo
-      var sublevelsSnap = await _db.collection('content')
-          .doc(levelId)
-          .collection('sublevels')
-          .get();
+      var sublevelsSnap = await _db.collection('content').doc(levelId).collection('sublevels').get();
 
-      // 2. Recorremos cada subnivel
       for (var subDoc in sublevelsSnap.docs) {
-        // Obtenemos sus preguntas
         var qSnap = await subDoc.reference.collection('questions').get();
-        var questions = qSnap.docs.map((doc) => 
-            QuestionModel.fromMap(doc.data(), doc.id)
-        ).toList();
+        var questions = qSnap.docs.map((doc) => QuestionModel.fromMap(doc.data(), doc.id)).toList();
 
-        // 3. Revolvemos las preguntas de ese subnivel y tomamos 'N' cantidad
         questions.shuffle();
         examenFinal.addAll(questions.take(preguntasPorSubnivel));
       }
 
-      // 4. Revolvemos el examen completo para que los temas salgan mezclados
       examenFinal.shuffle();
-      print("🎓 Examen Final generado con ${examenFinal.length} preguntas aleatorias.");
-      
       return examenFinal;
     } catch (e) {
       print("Error generando examen final: $e");
