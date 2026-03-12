@@ -8,12 +8,12 @@ class UserModel {
   final int subnivelActual;
   final int xp;
   final int racha;
-  final int rachaMaxima; // Nuevo
-  final int leccionesJugadas; // Nuevo
-  final int mejorTiempo; // Nuevo
-  final List<String> logrosDesbloqueados; // Nuevo
-  final List<String> subnivelesDesbloqueados; // Nuevo
-  final Map<String, dynamic> progresoNiveles; // Nuevo
+  final int rachaMaxima; 
+  final int leccionesJugadas; 
+  final int mejorTiempo;  
+  final List<String> logrosDesbloqueados; 
+  final List<String> subnivelesDesbloqueados; 
+  final Map<String, dynamic> progresoNiveles; 
   final DateTime fechaRegistro;
 
   UserModel({
@@ -46,7 +46,6 @@ class UserModel {
       leccionesJugadas: data['lecciones_jugadas'] ?? 0,
       mejorTiempo: data['mejor_tiempo'] ?? 0,
       logrosDesbloqueados: List<String>.from(data['logros_desbloqueados'] ?? []),
-      // Si no existe, por defecto le damos el primer subnivel
       subnivelesDesbloqueados: List<String>.from(data['subniveles_desbloqueados'] ?? ['basico_s1']),
       progresoNiveles: Map<String, dynamic>.from(data['progreso_niveles'] ?? {
         'basico': 0, 'intermedio': 0, 'avanzado': 0

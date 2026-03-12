@@ -1,6 +1,7 @@
-// Archivo: user_model.dart
+// Importar del firestore
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Modelo que gestiona el perfil de progreso y estadísticas del jugador
 class UserModel {
   final String id;
   final int xp;

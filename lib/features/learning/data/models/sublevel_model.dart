@@ -1,5 +1,5 @@
-// Archivo: sublevel_model.dart
-import 'question_model.dart';
+// Modelo que representa una Lección específica dentro de un Mundo.
+import 'question_model.dart'; // Importamos el modelo de preguntas porque un subnivel contiene varias preguntas
 
 class SubLevelModel {
   final String id;

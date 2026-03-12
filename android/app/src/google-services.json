@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "315460001458",
+    "project_id": "transitapp-a4f0d",
+    "storage_bucket": "transitapp-a4f0d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315460001458:android:cf19ce72aa7394de6d33ab",
+        "android_client_info": {
+          "package_name": "com.example.transitapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4fo--tXL2lhMHzC6y1tq-t_93wrTzOEg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
