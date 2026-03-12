@@ -8,7 +8,7 @@ import '../models/logro_model.dart';
 class LearningService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // --- OBTENER NIVELES ---
+  // Niveles usando Stream para mantiener una conexión constante. Si cambiamos el nombre de un nivel en Firebase, la app de todos los usuarios se actualiza sola al instante sin recargar.
   Stream<List<LevelModel>> getLevels() {
     return _db.collection('content')
         .orderBy('orden')
@@ -18,7 +18,7 @@ class LearningService {
             .toList());
   }
 
-  // --- OBTENER SUBNIVELES ---
+  // Subniveles (Una vez para no gastar datos)
   Future<List<SubLevelModel>> getSubLevels(String levelId) async {
     try {
       QuerySnapshot snapshot = await _db
@@ -37,7 +37,7 @@ class LearningService {
     }
   }
 
-  // --- OBTENER PREGUNTAS ---
+  // Descargar preguntas
   Future<List<QuestionModel>> getQuestions(String levelId, String subLevelId) async {
     try {
       QuerySnapshot snapshot = await _db
@@ -57,7 +57,7 @@ class LearningService {
     }
   }
 
-  // --- MOTOR DE PROGRESO, XP Y RACHA ---
+  // Motor de progreso, XP y racha de nuestro usuario
   Future<void> actualizarProgresoAlGanar({
     required int xpGanada,
     required String idMundo, 
@@ -67,7 +67,7 @@ class LearningService {
   }) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      if (user == null) return; // Esto es por si la sesión no existe
 
       final userRef = _db.collection('users').doc(user.uid);
       final doc = await userRef.get();
@@ -76,7 +76,7 @@ class LearningService {
       final data = doc.data()!;
       List<String> completadas = List<String>.from(data['lecciones_completadas'] ?? []);
       
-      // 0. LÓGICA DE SALTO DE MUNDOS Y CANDADOS
+      // Lógica de salto de nivel
       String idActual = "${idMundo}_$idSubnivel";
       String idSiguiente = "${idMundo}_$idSiguienteSubnivel";
       String? nuevoNivelActual;
@@ -91,15 +91,15 @@ class LearningService {
         }
       }
 
-      // 1. Lógica de XP
+      // Lógica de XP
       int xpFinal = xpGanada;
       bool esRepeticion = completadas.contains(idActual);
 
       if (esRepeticion) {
-        xpFinal = (xpGanada * 0.10).toInt(); 
+        xpFinal = (xpGanada * 0.10).toInt(); // Penalizar repeticiones
       }
 
-      // 2. Lógica de Racha
+      // Lógica de rachas
       int rachaActual = data['racha'] ?? 0;
       int rachaMax = data['racha_maxima'] ?? 0;
       DateTime hoy = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
@@ -109,25 +109,27 @@ class LearningService {
         DateTime ultimaFecha = DateTime(ultima.year, ultima.month, ultima.day);
         int diferencia = hoy.difference(ultimaFecha).inDays;
 
-        if (diferencia == 1) rachaActual++; 
-        else if (diferencia > 1) rachaActual = 1; 
+        if (diferencia == 1) rachaActual++; // Jugó ayer y hoy, la racha sube
+        else if (diferencia > 1) rachaActual = 1; // Faltó más de un día, racha reiniciada
       } else {
-        rachaActual = 1; 
+        rachaActual = 1; // Jugador nuevo, hizo su primera partida
       }
       if (rachaActual > rachaMax) rachaMax = rachaActual;
 
-      // 3. Lógica de Mejor Tiempo
+      // Lógica de Mejor Tiempo
       int mejorTiempoAnterior = data['mejor_tiempo'] ?? 9999;
-      int nuevoMejorTiempo = (tiempoSegundos < mejorTiempoAnterior) ? tiempoSegundos : mejorTiempoAnterior;
+      int nuevoMejorTiempo = (tiempoSegundos < mejorTiempoAnterior) ? tiempoSegundos : mejorTiempoAnterior; // Solo guardamos si mejoro su tiempo
 
-      // 4. Guardado en Firebase 
+      // Guardamos todo en un solo diccionario
+      // Usamos FieldValue.increment() para sumar directo en la base de datos sin descargar la variable original
+      // Usamos FieldValue.arrayUnion() para agregar a la lista sin duplicar datos
       Map<String, dynamic> updates = {
         'xp': FieldValue.increment(xpFinal),
         'lecciones_jugadas': FieldValue.increment(1),
         'racha': rachaActual,
         'racha_maxima': rachaMax,
         'mejor_tiempo': nuevoMejorTiempo,
-        'ultima_partida': FieldValue.serverTimestamp(),
+        'ultima_partida': FieldValue.serverTimestamp(), // Hora del servidor de Firebase
         'lecciones_completadas': FieldValue.arrayUnion([idActual]),
         'subniveles_desbloqueados': FieldValue.arrayUnion([idActual, idSiguiente]),
       };
@@ -135,15 +137,15 @@ class LearningService {
       if (nuevoNivelActual != null) {
         updates['nivel_actual'] = nuevoNivelActual;
       }
-      
-      // 🛠️ AQUÍ ESTÁ LA SOLUCIÓN DE LA BASE DE DATOS: 
-      // Lo mandamos como un Mapa real de Dart para que Firebase respete la estructura.
+
+      // Actualizamos el diccionario interno de progreso del mundo actual
       if (!esRepeticion && idSubnivel != 'examen') {
         updates['progreso_niveles'] = {
           idMundo: FieldValue.increment(1)
         };
       }
 
+      // SetOptions(merge: true) actualiza solo los campos del diccionario sin borrar el resto del perfil.
       await userRef.set(updates, SetOptions(merge: true));
 
       // 5. Verificar Logros

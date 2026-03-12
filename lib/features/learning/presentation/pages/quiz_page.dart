@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // <-- Agregado para leer el usuario
-import 'package:cloud_firestore/cloud_firestore.dart'; // <-- Agregado para leer el nombre
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/services/learning_service.dart';
 import '../../data/models/question_model.dart';
 import 'package:transitapp/features/learning/presentation/widgets/games/quiz_router.dart';
@@ -11,8 +11,8 @@ class QuizPage extends StatefulWidget {
   final String subLevelId;
   final String title;
   final int xpRecompensa;
-  final bool isFinalExam; // Respetamos la variable de Adrián
-  final String nextSubLevelId; // Respetamos la llave de Adrián
+  final bool isFinalExam;
+  final String nextSubLevelId;
 
   const QuizPage({
     super.key, 
@@ -29,79 +29,87 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  final LearningService _service = LearningService();
+  final LearningService _service = LearningService(); // Conexión con la base de datos
   List<QuestionModel> _questions = [];
-  bool _isLoading = true;
-  int _currentIndex = 0;
+  bool _isLoading = true; // Para mostrar la ruedita de carga al inicio
+  int _currentIndex = 0; // Empezamos en el número de pregunta 0
   
-  late DateTime _startTime; 
-  int _aciertos = 0; // <-- NUESTRO CONTADOR DE ACIERTOS
+  late DateTime _startTime; // Definimos un cronómetro
+  int _aciertos = 0; // Contador de aciertos
 
   @override
   void initState() {
     super.initState();
-    _startTime = DateTime.now(); 
-    _loadQuestions();
+    _startTime = DateTime.now(); // Empezamos el cronómetro en cuanto se abre la pantalla
+    _loadQuestions(); // Mandamos a llamar las preguntas de Firebase
   }
 
   Future<void> _loadQuestions() async {
     List<QuestionModel> questions;
     
-    // Respetamos la lógica de Adrián para los exámenes
+    // ¿Es un examen final o una lección normal?
     if (widget.isFinalExam) {
       questions = await _service.getExamenFinal(widget.levelId, preguntasPorSubnivel: 2);
     } else {
       questions = await _service.getQuestions(widget.levelId, widget.subLevelId);
     }
 
+    // Este if (mounted) significa "Si el usuario no ha cerrado esta pantalla mientras descargábamos, actualiza la UI".
     if (mounted) {
       setState(() {
-        _questions = questions;
-        _isLoading = false;
+        _questions = questions; // Llenamos la lista
+        _isLoading = false; // Quitamos la ruedita de carga
       });
     }
   }
 
+  // Ciclo del juego
   void _answerQuestion(bool esCorrecta) {
     if (esCorrecta) {
-      _aciertos++; // <-- SUMAMOS ACIERTOS AQUÍ
+      _aciertos++; // Se suman los aciertos aquí
     }
 
+    // Mostramos la tarjetita emergente de abajo (BottomSheet) para decirle si acertó o falló
     QuestionModel currentQ = _questions[_currentIndex];
     showModalBottomSheet(
       context: context,
-      isDismissible: false,
-      enableDrag: false,
+      isDismissible: false, // No dejamos que la cierre tocando afuera de la tarjetita 
+      enableDrag: false, // Ni arrastarla
       backgroundColor: Colors.transparent,
       builder: (context) => FeedbackBottomSheet(
         isCorrect: esCorrecta,
         feedback: currentQ.feedback,
         onContinue: () {
-          Navigator.pop(context); 
-          _advanceToNextQuestion();
+          Navigator.pop(context); // Ocultamos la tarjetita
+          _advanceToNextQuestion(); // Avanzamos a la siguiente pregunta
         },
       ),
     );
   }
 
   void _advanceToNextQuestion() {
+    // Si todavía nos quedan preguntas en la lista, simplemente avanzamos el índice
     if (_currentIndex < _questions.length - 1) {
       setState(() => _currentIndex++);
     } else {
+      // Si ya no hay preguntas, se acabó el juego
       _showFinishDialog();
     }
   }
 
+  // Resultados finales
   Future<void> _showFinishDialog() async {
+    // Detenemos el cronómetro y calculamos los segundos totales
     int segundos = DateTime.now().difference(_startTime).inSeconds;
 
+    // Mostramos una ruedita de carga bloqueando la pantalla mientras guardamos en Firebase
     showDialog(
       context: context, 
       barrierDismissible: false, 
       builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white))
     );
 
-    // --- OBTENEMOS EL NOMBRE REAL DE FIREBASE ---
+    // Doxxeamos al usuario sacamos su nombre para esta tarjeta
     String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     String nombreUsuario = 'Piloto';
     try {
@@ -113,7 +121,7 @@ class _QuizPageState extends State<QuizPage> {
       print("Error obteniendo usuario: $e");
     }
 
-    // Usamos la lógica original de Adrián para guardar
+    // La motor cosa para actualizar el progreso (Linea 60 del learning_service.dart)
     await _service.actualizarProgresoAlGanar(
       xpGanada: widget.xpRecompensa,
       idMundo: widget.levelId,
@@ -122,14 +130,14 @@ class _QuizPageState extends State<QuizPage> {
       tiempoSegundos: segundos,
     );
 
-    if (mounted) Navigator.pop(context); // Cierra el circulito de carga
+    if (mounted) Navigator.pop(context); // Cierra la ruedita
 
-    // --- NUESTRO DIÁLOGO BONITO ---
+    // Aquí es FRONTEND para mostrar las estrellitas, el nombre, los aciertos y el botón de volver.
     if (mounted) {
       showDialog(
         context: context, 
         barrierDismissible: false,
-        builder: (_) => Dialog(
+        builder: (_) => Dialog( // Todo el diseño visual de la tarjeta blanca con el resultado
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 10,
           backgroundColor: Colors.white,
@@ -203,6 +211,7 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
+  // Lo que ve nuestro usuario
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,6 +222,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
+                // Barra de progreso
                 LinearProgressIndicator(
                   value: (_currentIndex + 1) / _questions.length,
                   minHeight: 10,
@@ -222,6 +232,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
                 const SizedBox(height: 20),
                 Expanded(
+                  // Enrutador de preguntas
                   child: QuizRouter(
                     key: ValueKey(_questions[_currentIndex].id), 
                     question: _questions[_currentIndex], 

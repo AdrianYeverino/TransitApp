@@ -1,10 +1,11 @@
+// Modelo que define la estructura principal de un "Mundo" o Categoría de aprendizaje
 class LevelModel {
   final String id;
-  final String titulo;       // Ej: "Nivel Básico"
-  final String descripcion;  // Ej: "Principios fundamentales..."
-  final int orden;           // 1, 2, 3
-  final String colorHex;     // Para darle un color distinto a cada mundo en la UI
-  final String imagenPath;   // Icono representativo del nivel
+  final String titulo;       
+  final String descripcion;  
+  final int orden;           
+  final String colorHex;     
+  final String imagenPath;   
 
   LevelModel({
     required this.id,

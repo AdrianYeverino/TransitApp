@@ -1,3 +1,5 @@
+// Modelo que representa un logro desbloqueable en la aplicación
+
 class LogroModel {
   final String id;
   final String titulo;
