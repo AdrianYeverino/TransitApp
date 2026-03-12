@@ -14,7 +14,7 @@ class FeedbackBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Definimos la paleta de colores dependiendo de si es correcto o incorrecto
+    //Paleta de colores
     final Color backgroundColor = isCorrect ? Colors.green.shade50 : Colors.red.shade50;
     final Color primaryColor = isCorrect ? Colors.green.shade600 : Colors.red.shade600;
     final IconData icon = isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded;
@@ -42,7 +42,7 @@ class FeedbackBottomSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min, // Se adapta al contenido
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Título e Ícono ---
+            //Título e icono 
             Row(
               children: [
                 Icon(icon, color: primaryColor, size: 36),
@@ -61,21 +61,21 @@ class FeedbackBottomSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // --- Texto de Feedback (Aparece siempre si hay un error, o si es un dato extra) ---
+            // Texto de Feedback 
             if (feedback.isNotEmpty)
               Text(
                 feedback,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
-                  color: primaryColor.withValues(alpha: 0.8), // Un poco más suave que el título
+                  color: primaryColor.withValues(alpha: 0.8), 
                   height: 1.4,
                 ),
               ),
             
             const SizedBox(height: 30),
 
-            // --- Botón de Continuar ---
+            //Botón de Continuar
             SizedBox(
               width: double.infinity,
               height: 55,

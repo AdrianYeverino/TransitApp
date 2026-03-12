@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
     
-      if (result == "Success") { // Resultado exitoso
+      if (result == "Success") { // Resultado si esta bien el inicio de sesion
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("¡Ingreso exitoso! Redirigiendo..."),
@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // --- ENCABEZADO ---
+            // ENCABEZADO
             Container(
               height: MediaQuery.of(context).size.height * 0.35,
               width: double.infinity,
@@ -99,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            // --- FORMULARIO ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
               child: Column(

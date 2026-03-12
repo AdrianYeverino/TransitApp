@@ -3,7 +3,7 @@ import '../../../data/models/question_model.dart';
 
 class OrderingGame extends StatefulWidget {
   final QuestionModel question;
-  final Function(bool isCorrect) onAnswered; // Ajustado a tu formato de router
+  final Function(bool isCorrect) onAnswered; 
 
   const OrderingGame({
     super.key,
@@ -16,13 +16,12 @@ class OrderingGame extends StatefulWidget {
 }
 
 class _OrderingGameState extends State<OrderingGame> {
-  // Lista que manejará el orden actual de los elementos
   late List<String> currentOrder;
 
   // Paleta de colores de TransitApp
   final Color deepBlue = const Color(0xFF0D47A1);
   final Color lightBlue = const Color(0xFFE3F2FD);
-  final Color dragAccentColor = const Color(0xFFFF9800); // Naranja para elementos movibles
+  final Color dragAccentColor = const Color(0xFFFF9800); 
 
   @override
   void initState() {
@@ -31,7 +30,7 @@ class _OrderingGameState extends State<OrderingGame> {
     currentOrder = List.from(widget.question.options ?? []);
   }
 
-  // Función para validar cuando el usuario presiona confirmar
+  // Función para validar 
   void _checkAnswer() {
     if (widget.question.correctOrder == null) return;
 
@@ -50,7 +49,6 @@ class _OrderingGameState extends State<OrderingGame> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // --- 1. TARJETA DE ENUNCIADO ---
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -82,16 +80,14 @@ class _OrderingGameState extends State<OrderingGame> {
         
         const SizedBox(height: 30),
 
-        // --- 2. ZONA INTERACTIVA DE ARRASTRE ---
+        // 2. ZONA INTERACTIVA DE ARRASTRE 
         Expanded(
-          // Quitamos el color de fondo por defecto del reorderable
           child: Theme(
             data: ThemeData(canvasColor: Colors.transparent),
             child: ReorderableListView.builder(
               itemCount: currentOrder.length,
               onReorder: (oldIndex, newIndex) {
                 setState(() {
-                  // Ajuste lógico requerido por Flutter para listas reordenables
                   if (oldIndex < newIndex) {
                     newIndex -= 1;
                   }
@@ -101,7 +97,7 @@ class _OrderingGameState extends State<OrderingGame> {
               },
               itemBuilder: (context, index) {
                 final itemText = currentOrder[index];
-                return ReorderableDelayedDragStartListener( // <-- Cambia esto si quieres demora
+                return ReorderableDelayedDragStartListener( 
                   key: ValueKey(itemText),
                   index: index,
                   child: Container(
@@ -117,7 +113,6 @@ class _OrderingGameState extends State<OrderingGame> {
                         child: Text("${index + 1}"),
                       ),
                       title: Text(itemText),
-                      // Si quieres que SOLO se mueva al tocar este icono:
                       trailing: ReorderableDragStartListener(
                         index: index,
                         child: Icon(Icons.drag_indicator, color: Colors.grey.shade400),
@@ -130,7 +125,7 @@ class _OrderingGameState extends State<OrderingGame> {
           ),
         ),
 
-        // --- 3. BOTÓN DE CONFIRMACIÓN ---
+        // 3. BOTÓN DE CONFIRMACION
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: SizedBox(

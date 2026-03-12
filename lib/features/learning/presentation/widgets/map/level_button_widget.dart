@@ -17,8 +17,6 @@ class LevelButtonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Aquí es donde tu compañero pondrá su diseño avanzado.
-    // Por ahora, mantenemos la coherencia visual con la app.
     return Column(
       children: [
         GestureDetector(

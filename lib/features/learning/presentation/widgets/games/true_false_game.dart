@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../data/models/question_model.dart';
-import 'components/check_button.dart'; // Importar el botón
+import 'components/check_button.dart';
 
 class TrueFalseGame extends StatefulWidget {
   final QuestionModel question;
@@ -58,8 +58,7 @@ class _TrueFalseGameState extends State<TrueFalseGame> {
             _buildDecisionCard(title: "VERDAD", icon: Icons.check_rounded, baseColor: Colors.teal, index: 0),
           ],
         ),
-        
-        // Empujamos el botón hacia abajo
+
         const Spacer(), 
         CheckButton(
           isEnabled: _selectedIndex != null,
