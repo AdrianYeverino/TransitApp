@@ -30,31 +30,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // Llamamos a Firebase
+    // Firebase
     String? result = await _authService.login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
-    // Verificamos si el widget sigue "vivo" antes de usar setState
     if (mounted) {
       setState(() => _isLoading = false);
     
-      if (result == "Success") {
-        // 1. Mostrar mensaje de éxito
+      if (result == "Success") { // Resultado exitoso
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("¡Ingreso exitoso! Redirigiendo..."),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 1), // Corta duración para que no estorbe
+            duration: Duration(seconds: 1),
           ),
         );
-        
-        // 2. NO NAVEGAR. 
-        // Al salir de esta función, el StreamBuilder de main.dart 
-        // detectará el usuario y cambiará la pantalla a Home solito.
-      } else {
-        // Mostrar error
+
+      } else { // Fallo en el inicio de sesion
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Error: ${result ?? 'Desconocido'}"),
