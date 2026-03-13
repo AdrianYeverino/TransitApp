@@ -5,22 +5,22 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // FUNCIÓN PARA REGISTRARSE Y CREAR PERFIL
+  // Registro y creación de perfil
   Future<String?> signUp(String email, String password, String nombre) async {
     try {
-      // 1. Crea el usuario en Authentication
+      // Creamos usurios
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email, 
         password: password
       );
       
-      // 2. Si se creó bien, guardamos sus datos extra en Firestore
+      // Si se creó bien, guardamos sus datos en la nube
       if (result.user != null) {
         await _db.collection('users').doc(result.user!.uid).set({
           'nombre': nombre,
           'email': email,
-          'puntos_xp': 0,        // Empieza en 0
-          'nivel': 1,            // Empieza en nivel 1
+          'puntos_xp': 0,       
+          'nivel': 1,            
           'rol': 'conductor',
           'fecha_registro': DateTime.now(),
         });
@@ -31,7 +31,7 @@ class AuthService {
     }
   }
 
-  // FUNCIÓN PARA INICIAR SESIÓN
+  // Función para iniciar sesión
   Future<String?> login(String email, String password) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
