@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-
 import 'package:transitapp/features/learning/presentation/pages/perfil_screen.dart';
-// Eliminamos la importación del level_screen aquí porque ya no se usa como ruta fija
-//import 'features/learning/data/services/seeder.dart';
-
-// Importa tus pantallas
 import 'features/auth/presentation/login_screen.dart';
 import 'features/learning/presentation/pages/home_page.dart';
 import 'services/auth_service.dart';
@@ -18,14 +13,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 1. CARGA MASIVA DE DATOS
-  // ¡ATENCIÓN! Córrelo así una vez para que Firebase reciba los nombres reales.
-  // Después de correrlo, ponle // a estas 3 líneas para apagarlas.
-  //print("--- Iniciando carga masiva ---");
+  // Carga de datos de mi poderosisimo seeder
+  //print("Cargando...");
   //await Seeder.importarContenidoDinamico();
-  //print("--- Carga finalizada ---");
+  //print("Seeder cargado, espero sin problemas");
 
-  // 2. REPARACIÓN DE USUARIOS
+  // Proteger y verificar usuarios viejos
   final AuthService authService = AuthService(); 
   await authService.actualizarUsuariosAntiguos();
 
@@ -46,14 +39,11 @@ class TransitApp extends StatelessWidget {
         useMaterial3: true,
       ),
       
-      // --- AQUÍ REGISTRAMOS TUS RUTAS NUEVAS ---
       routes: {
         '/perfil': (context) => const PerfilScreen(),
-        // Se eliminó la ruta '/moduloSenales' porque el HomePage ahora manda
-        // directamente a LevelScreen con los datos correctos de cada mundo.
       },
 
-      // EL PORTERO (Auth Wrapper)
+      // Aquí se mueve todo 
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
@@ -61,9 +51,9 @@ class TransitApp extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            return const HomePage(); // ¡Sesión iniciada!
+            return const HomePage();
           }
-          return const LoginScreen(); // ¡A loguearse!
+          return const LoginScreen();
         },
       ),
     );
