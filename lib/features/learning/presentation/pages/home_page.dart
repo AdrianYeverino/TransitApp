@@ -28,7 +28,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. CABECERA CON DATOS REALES DE FIREBASE
+              // Cabecera con datos reales del Firebase
               StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance.collection('users').doc(_uid).snapshots(),
                 builder: (context, snapshot) {
@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // --- BOTÓN DEL AVATAR ---
+                          // Botón avatar
                           GestureDetector(
                             onTap: () => Navigator.pushNamed(context, '/perfil'),
                             child: Container(
@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           
-                          // --- MENÚ DESPLEGABLE (Limpio) ---
+                          // Menú desplegable
                           Container(
                             height: 35,
                             width: 35,
@@ -110,7 +110,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 30),
                       
-                      // 2. TARJETAS ESTADÍSTICAS PRINCIPALES
+                      // Tarjetas principales
                       _buildStatCard('XP Total', '$xp', Icons.star_border, Colors.amber),
                       _buildStatCard('Racha de Días', '$racha días', Icons.local_fire_department_outlined, Colors.deepOrange),
                     ],
@@ -122,7 +122,7 @@ class _HomePageState extends State<HomePage> {
               const Text('Mundos de Aprendizaje', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 15),
 
-              // 3. MAPA DE NIVELES CON CANDADOS DINÁMICOS
+              // Mapa de niveles con los candados esos
               StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance.collection('users').doc(_uid).snapshots(),
                 builder: (context, snapshot) {
@@ -136,7 +136,7 @@ class _HomePageState extends State<HomePage> {
 
                   return Column(
                     children: [
-                      // Nivel Básico (Siempre abierto)
+                      // Nivel básico (Siempre abierto)
                       GestureDetector(
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelScreen(
@@ -153,7 +153,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
 
-                      // Nivel Intermedio (Bloqueado dinámicamente)
+                      // Nivel intermedio
                       GestureDetector(
                         onTap: intermedioLibre ? () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelScreen(
@@ -172,7 +172,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
 
-                      // Nivel Avanzado (Bloqueado dinámicamente)
+                      // Nivel avanzado
                       GestureDetector(
                         onTap: avanzadoLibre ? () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => const LevelScreen(
@@ -205,7 +205,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- FUNCIONES WIDGET DE APOYO ---
+  // Widgets extras
   
   Widget _buildStatCard(String titulo, String valor, IconData icono, Color color) {
     return Card(
@@ -241,12 +241,12 @@ class _HomePageState extends State<HomePage> {
     return Card(
       color: color,
       margin: const EdgeInsets.symmetric(vertical: 10),
-      // Le damos una forma redondeada explícita y forzamos a que el contenido no se salga (clip)
+      // Le damos una forma redondeada explícita y forzamos a que el contenido no se sala
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       clipBehavior: Clip.antiAlias, 
       child: Stack(
         children: [
-          // 1. EL CONTENIDO REAL (Ahora el Padding está por dentro del Stack)
+          // Contenido 
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -263,7 +263,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           
-          // 2. EL EFECTO BLUR Y CANDADO (Solo si está bloqueado)
+          // El efecto borroso y el candado ese
           if (bloqueado)
             Positioned.fill( // Esto hace que abarque TODA la tarjeta
               child: BackdropFilter(
