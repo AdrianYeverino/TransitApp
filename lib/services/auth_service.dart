@@ -7,9 +7,8 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // ----------------------------------------------------------------
-  // 1. REGISTRO Y CREACIÓN DE PERFIL MAESTRO
-  // ----------------------------------------------------------------
+  
+  // Registro y creacion de usuarios
   Future<String?> signUp(String email, String password, String nombre) async {
     try {
       // Crea el usuario en Firebase Authentication
@@ -19,7 +18,7 @@ class AuthService {
       );
       
       if (result.user != null) {
-        // Creamos el modelo con TODOS los campos necesarios para la app
+        // Crea el modelo con TODOS los campos necesarios para la aplicación
         UserModel nuevoUsuario = UserModel(
           uid: result.user!.uid,
           nombre: nombre,
@@ -53,9 +52,8 @@ class AuthService {
     }
   }
 
-  // ----------------------------------------------------------------
-  // 2. INICIO DE SESIÓN
-  // ----------------------------------------------------------------
+
+  // INICIO DE SESIÓN
   Future<String?> login(String email, String password) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
@@ -65,10 +63,7 @@ class AuthService {
     }
   }
 
-  // ----------------------------------------------------------------
-  // 3. SCRIPT DE REPARACIÓN (Para usuarios)
-  // ----------------------------------------------------------------
-  // Ejecuta esta función una vez para nivelar a los usuarios antiguos
+  // Cosa para reparar usuarios antiguos 
   Future<void> actualizarUsuariosAntiguos() async {
     try {
       final snapshot = await _db.collection('users').get();
@@ -87,7 +82,7 @@ class AuthService {
           },
         }, SetOptions(merge: true));
       }
-      print("✅ Todos los perfiles han sido actualizados al esquema maestro.");
+      print("✅ Todos los perfiles han sido actualizados");
     } catch (e) {
       print("❌ Error en la migración de usuarios: $e");
     }
