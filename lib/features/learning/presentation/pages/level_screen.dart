@@ -37,7 +37,7 @@ class LevelScreen extends StatelessWidget {
               var userData = snapshotUser.data!.data() as Map<String, dynamic>? ?? {};
               
               // 1. Listas de seguridad
-              List<dynamic> desbloqueados = userData['subniveles_desbloqueados'] ?? ['basico_s1']; // Siempre gratis
+              List<dynamic> desbloqueados = userData['subniveles_desbloqueados'] ?? ['basico_s1']; 
               List<dynamic> completados = userData['lecciones_completadas'] ?? [];
 
               // 2. Progreso
@@ -71,7 +71,7 @@ class LevelScreen extends StatelessWidget {
                         String tagSubnivel = '${levelId}_$subId';
                         String nextId = (index == sublevels.length - 1) ? 'examen' : sublevels[index + 1].id;
 
-                        // Verificación estricta (Mantiene candado de tu amigo)
+                        // Verificación estricta 
                         bool isUnlocked = desbloqueados.contains(tagSubnivel);
                         if (levelId == 'basico' && subId == 's1') isUnlocked = true;
 
