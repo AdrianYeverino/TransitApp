@@ -35,7 +35,7 @@ class PerfilScreen extends StatelessWidget {
               int racha = userData['racha'] ?? 0;
               String nivelActual = userData['nivel_actual'] ?? 'Básico';
               
-              // 🛠️ LA SOLUCIÓN: Leer la lista real de nuestra base de datos
+              // LA SOLUCIÓN: Leer la lista real de nuestra base de datos
               List<String> completadas = List<String>.from(userData['lecciones_completadas'] ?? []);
               
               // Matemáticas de Progreso reales
@@ -173,23 +173,48 @@ class PerfilScreen extends StatelessWidget {
                     const SizedBox(height: 20),
 
                     // 5. LOGROS (Estáticos por ahora)
+                    // 5. LOGROS (Dinámicos conectados a Firebase)
                     _buildCardContainer(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.emoji_events, color: Colors.amber, size: 20),
-                              SizedBox(width: 10),
-                              Text('Logros', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                              const SizedBox(width: 10),
+                              const Text('Logros', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              const Spacer(),
+                              // Mostramos cuántos tiene desbloqueados en total
+                              Text('${(userData['logros_desbloqueados'] as List?)?.length ?? 0} Desbloqueados', 
+                                style: TextStyle(color: Colors.blue.shade700, fontSize: 13, fontWeight: FontWeight.bold)),
                             ],
                           ),
                           const SizedBox(height: 5),
-                          Text('Sigue jugando para desbloquear', style: TextStyle(color: Colors.blue.shade700, fontSize: 13)),
+                          const Text('Sigue jugando para desbloquear', style: TextStyle(color: Colors.black54, fontSize: 13)),
                           const SizedBox(height: 20),
-                          _buildLogroItem(Icons.track_changes, 'Primer Paso', 'Completaste tu primera lección'),
-                          _buildLogroItem(Icons.library_books, 'Estudiante Dedicado', 'Completaste 5 lecciones'),
-                          _buildLogroItem(Icons.emoji_events, 'Maestro del Módulo', 'Completaste tu primer módulo'),
+                          
+                          // Lista dinámica de logros. Pasamos la lista del usuario al widget.
+                          _buildLogroItem(
+                            icon: Icons.track_changes, 
+                            title: 'Primer Paso', 
+                            description: 'Completaste tu primera lección',
+                            idLogro: 'primer_paso', // Este debe coincidir con el ID de Firebase app_config
+                            logrosDelUsuario: List<String>.from(userData['logros_desbloqueados'] ?? []),
+                          ),
+                          _buildLogroItem(
+                            icon: Icons.local_fire_department, 
+                            title: 'Racha de Fuego', 
+                            description: 'Mantén una racha de 7 días',
+                            idLogro: 'racha_fuego',
+                            logrosDelUsuario: List<String>.from(userData['logros_desbloqueados'] ?? []),
+                          ),
+                          _buildLogroItem(
+                            icon: Icons.directions_car, 
+                            title: 'Conductor Experto', 
+                            description: 'Acumula 500 XP',
+                            idLogro: 'conductor_experto',
+                            logrosDelUsuario: List<String>.from(userData['logros_desbloqueados'] ?? []),
+                          ),
                         ],
                       ),
                     ),
@@ -202,7 +227,7 @@ class PerfilScreen extends StatelessWidget {
     );
   }
 
-  // --- WIDGETS DE APOYO (Intactos de tu diseño original) ---
+  //
   Widget _buildCardContainer({required Widget child}) {
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(20),
@@ -254,15 +279,63 @@ class PerfilScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogroItem(IconData icon, String title, String description) {
+  Widget _buildLogroItem({
+    required IconData icon, 
+    required String title, 
+    required String description, 
+    required String idLogro, 
+    required List<String> logrosDelUsuario
+  }) {
+    // Aquí ocurre la magia: verificamos si el usuario tiene este logro
+    bool estaDesbloqueado = logrosDelUsuario.contains(idLogro);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Container(decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle), padding: const EdgeInsets.all(8), child: Icon(icon, color: Colors.amber, size: 24)),
-          const SizedBox(width: 15),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), Text(description, style: const TextStyle(fontSize: 12, color: Colors.black54))])),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Opacity(
+        // Si no está desbloqueado, lo hacemos un poco transparente
+        opacity: estaDesbloqueado ? 1.0 : 0.5, 
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                // Fondo gris si está bloqueado, doradito claro si está desbloqueado
+                color: estaDesbloqueado ? Colors.amber.shade100 : Colors.grey.shade200, 
+                shape: BoxShape.circle
+              ), 
+              padding: const EdgeInsets.all(10), 
+              child: Icon(
+                icon, 
+                // Color gris si está bloqueado, dorado intenso si lo ganó
+                color: estaDesbloqueado ? Colors.amber.shade800 : Colors.grey, 
+                size: 28
+              )
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, 
+                children: [
+                  Text(
+                    title, 
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 15,
+                      // Texto gris si está bloqueado
+                      color: estaDesbloqueado ? Colors.black : Colors.black54 
+                    )
+                  ), 
+                  Text(
+                    estaDesbloqueado ? description : "Bloqueado", 
+                    style: const TextStyle(fontSize: 12, color: Colors.black54)
+                  )
+                ]
+              )
+            ),
+            // Ponemos un candadito chiquito si está bloqueado
+            if (!estaDesbloqueado)
+              const Icon(Icons.lock_outline, size: 16, color: Colors.grey)
+          ],
+        ),
       ),
     );
   }

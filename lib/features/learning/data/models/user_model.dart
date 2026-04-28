@@ -11,6 +11,7 @@ class UserModel {
   final DateTime? ultimaPartida;
   final List<String> subnivelesDesbloqueados;
   final Map<String, int> progresoNiveles;
+  final List<String> logrosDesbloqueados;
 
   UserModel({
     required this.id,
@@ -21,6 +22,7 @@ class UserModel {
     this.ultimaPartida,
     required this.subnivelesDesbloqueados,
     required this.progresoNiveles,
+    this.logrosDesbloqueados = const [],
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String documentId) {
@@ -33,6 +35,7 @@ class UserModel {
       ultimaPartida: map['ultima_partida'] != null ? (map['ultima_partida'] as Timestamp).toDate() : null,
       subnivelesDesbloqueados: List<String>.from(map['subniveles_desbloqueados'] ?? []),
       progresoNiveles: Map<String, int>.from(map['progreso_niveles'] ?? {}),
+      logrosDesbloqueados: List<String>.from(map['logros_desbloqueados'] ?? []),
     );
   }
 }
