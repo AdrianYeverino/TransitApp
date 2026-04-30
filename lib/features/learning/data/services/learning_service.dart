@@ -168,6 +168,7 @@ class LearningService {
 
       List<String> yaObtenidos = List<String>.from(userData['logros_desbloqueados'] ?? []);
       List<String> nuevosLogros = [];
+      int recompensaTotalXp = 0;
 
       for (var logro in reglas) {
         if (!yaObtenidos.contains(logro.id)) {
@@ -178,15 +179,26 @@ class LearningService {
             if (logro.operacion == "mayor_que") seCumple = valorActual >= logro.valorMeta;
             else if (logro.operacion == "menor_que") seCumple = valorActual > 0 && valorActual <= logro.valorMeta;
 
-            if (seCumple) nuevosLogros.add(logro.id);
+            if (seCumple) {
+              nuevosLogros.add(logro.id);
+              recompensaTotalXp += logro.recompensaXP;
+            }
           }
         }
       }
 
       if (nuevosLogros.isNotEmpty) {
-        await _db.collection('users').doc(userId).update({
+        final Map<String, dynamic> updates = {
           'logros_desbloqueados': FieldValue.arrayUnion(nuevosLogros),
-        });
+        };
+
+        // Recompensa: otorgamos XP extra al momento de desbloquear.
+        // No se duplica porque solo se calcula para logros que NO estaban en `yaObtenidos`.
+        if (recompensaTotalXp > 0) {
+          updates['xp'] = FieldValue.increment(recompensaTotalXp);
+        }
+
+        await _db.collection('users').doc(userId).update(updates);
       }
     } catch (e) {
       print("❌ Error en motor de logros: $e");

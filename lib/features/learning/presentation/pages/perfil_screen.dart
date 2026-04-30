@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/models/logro_model.dart';
 
 class PerfilScreen extends StatelessWidget {
   const PerfilScreen({super.key});
@@ -59,6 +60,7 @@ class PerfilScreen extends StatelessWidget {
               // Cálculo para el próximo nivel (ej. cada 500 XP)
               int metaXp = ((xp ~/ 500) + 1) * 500;
               double progresoNivelXp = (xp % 500) / 500;
+              final List<String> logrosUsuario = List<String>.from(userData['logros_desbloqueados'] ?? []);
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -172,24 +174,69 @@ class PerfilScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // 5. LOGROS (Estáticos por ahora)
+                    // 5. LOGROS (Dinámicos desde Firebase)
                     _buildCardContainer(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.emoji_events, color: Colors.amber, size: 20),
-                              SizedBox(width: 10),
-                              Text('Logros', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                              const SizedBox(width: 10),
+                              const Text('Logros', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              const Spacer(),
+                              Text(
+                                '${logrosUsuario.length} Desbloqueados',
+                                style: TextStyle(color: Colors.blue.shade700, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 5),
-                          Text('Sigue jugando para desbloquear', style: TextStyle(color: Colors.blue.shade700, fontSize: 13)),
+                          const Text('Sigue jugando para desbloquear', style: TextStyle(color: Colors.black54, fontSize: 13)),
                           const SizedBox(height: 20),
-                          _buildLogroItem(Icons.track_changes, 'Primer Paso', 'Completaste tu primera lección'),
-                          _buildLogroItem(Icons.library_books, 'Estudiante Dedicado', 'Completaste 5 lecciones'),
-                          _buildLogroItem(Icons.emoji_events, 'Maestro del Módulo', 'Completaste tu primer módulo'),
+                          StreamBuilder<DocumentSnapshot>(
+                            stream: FirebaseFirestore.instance.collection('app_config').doc('logros_globales').snapshots(),
+                            builder: (context, logroSnap) {
+                              if (!logroSnap.hasData) {
+                                return const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 12), child: CircularProgressIndicator()));
+                              }
+
+                              final raw = logroSnap.data!.data() as Map<String, dynamic>? ?? {};
+                              final List<dynamic> listaRaw = raw['lista_logros'] ?? [];
+                              final List<LogroModel> logrosDisponibles = listaRaw
+                                  .whereType<Map<String, dynamic>>()
+                                  .map(LogroModel.fromMap)
+                                  .toList();
+
+                              if (logrosDisponibles.isEmpty) {
+                                return const Text('Aún no hay logros configurados.');
+                              }
+
+                              final int previewCount = logrosDisponibles.length <= 3 ? logrosDisponibles.length : 3;
+                              final preview = logrosDisponibles.take(previewCount).toList();
+
+                              return Column(
+                                children: [
+                                  ...preview.map((l) => _buildLogroItem(
+                                        logro: l,
+                                        estaDesbloqueado: logrosUsuario.contains(l.id),
+                                      )),
+                                  if (logrosDisponibles.length > previewCount)
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton(
+                                        onPressed: () => _showAllLogrosBottomSheet(
+                                          context: context,
+                                          logrosDisponibles: logrosDisponibles,
+                                          logrosUsuario: logrosUsuario,
+                                        ),
+                                        child: const Text('Ver todos'),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -254,16 +301,133 @@ class PerfilScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogroItem(IconData icon, String title, String description) {
+  IconData _iconForLogro(String id) {
+    switch (id) {
+      case 'licencia_aprendiz':
+        return Icons.card_membership;
+      case 'motor_encendido':
+        return Icons.local_fire_department;
+      case 'conductor_experto':
+        return Icons.directions_car;
+      case 'piloto_reflejos':
+        return Icons.flash_on;
+      case 'ciudadano_ejemplar':
+        return Icons.verified;
+      default:
+        return Icons.emoji_events;
+    }
+  }
+
+  Widget _buildLogroItem({
+    required LogroModel logro,
+    required bool estaDesbloqueado,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Container(decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle), padding: const EdgeInsets.all(8), child: Icon(icon, color: Colors.amber, size: 24)),
-          const SizedBox(width: 15),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), Text(description, style: const TextStyle(fontSize: 12, color: Colors.black54))])),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Opacity(
+        opacity: estaDesbloqueado ? 1.0 : 0.55,
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: estaDesbloqueado ? Colors.amber.shade100 : Colors.grey.shade200,
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(10),
+              child: Icon(
+                _iconForLogro(logro.id),
+                color: estaDesbloqueado ? Colors.amber.shade800 : Colors.grey,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    logro.titulo,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: estaDesbloqueado ? Colors.black : Colors.black54,
+                    ),
+                  ),
+                  Text(
+                    estaDesbloqueado ? logro.descripcion : 'Bloqueado',
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            if (logro.recompensaXP > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '+${logro.recompensaXP} XP',
+                  style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showAllLogrosBottomSheet({
+    required BuildContext context,
+    required List<LogroModel> logrosDisponibles,
+    required List<String> logrosUsuario,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('Todos los logros', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    Text(
+                      '${logrosUsuario.length}/${logrosDisponibles.length}',
+                      style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: logrosDisponibles.length,
+                    itemBuilder: (context, index) {
+                      final l = logrosDisponibles[index];
+                      return _buildLogroItem(
+                        logro: l,
+                        estaDesbloqueado: logrosUsuario.contains(l.id),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
