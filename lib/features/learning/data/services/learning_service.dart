@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/level_model.dart';
 import '../models/sublevel_model.dart';
-import '../models/question_model.dart'; 
+import '../models/question_model.dart';
 import '../models/logro_model.dart';
 
 class LearningService {
@@ -10,12 +10,15 @@ class LearningService {
 
   // Niveles usando Stream para mantiener una conexión constante. Si cambiamos el nombre de un nivel en Firebase, la app de todos los usuarios se actualiza sola al instante sin recargar.
   Stream<List<LevelModel>> getLevels() {
-    return _db.collection('content')
+    return _db
+        .collection('content')
         .orderBy('orden')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => LevelModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => LevelModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   // Subniveles (Una vez para no gastar datos)
@@ -29,7 +32,12 @@ class LearningService {
           .get();
 
       return snapshot.docs
-          .map((doc) => SubLevelModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .map(
+            (doc) => SubLevelModel.fromMap(
+              doc.data() as Map<String, dynamic>,
+              doc.id,
+            ),
+          )
           .toList();
     } catch (e) {
       print("Error trayendo subniveles: $e");
@@ -38,7 +46,10 @@ class LearningService {
   }
 
   // Descargar preguntas
-  Future<List<QuestionModel>> getQuestions(String levelId, String subLevelId) async {
+  Future<List<QuestionModel>> getQuestions(
+    String levelId,
+    String subLevelId,
+  ) async {
     try {
       QuerySnapshot snapshot = await _db
           .collection('content')
@@ -49,7 +60,12 @@ class LearningService {
           .get();
 
       return snapshot.docs
-          .map((doc) => QuestionModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .map(
+            (doc) => QuestionModel.fromMap(
+              doc.data() as Map<String, dynamic>,
+              doc.id,
+            ),
+          )
           .toList();
     } catch (e) {
       print("Error trayendo preguntas: $e");
@@ -60,10 +76,10 @@ class LearningService {
   // Motor de progreso, XP y racha de nuestro usuario
   Future<void> actualizarProgresoAlGanar({
     required int xpGanada,
-    required String idMundo, 
-    required String idSubnivel, 
+    required String idMundo,
+    required String idSubnivel,
     required String idSiguienteSubnivel,
-    required int tiempoSegundos, 
+    required int tiempoSegundos,
   }) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -74,8 +90,10 @@ class LearningService {
       if (!doc.exists) return;
 
       final data = doc.data()!;
-      List<String> completadas = List<String>.from(data['lecciones_completadas'] ?? []);
-      
+      List<String> completadas = List<String>.from(
+        data['lecciones_completadas'] ?? [],
+      );
+
       // Lógica de salto de nivel
       String idActual = "${idMundo}_$idSubnivel";
       String idSiguiente = "${idMundo}_$idSiguienteSubnivel";
@@ -83,10 +101,10 @@ class LearningService {
 
       if (idSubnivel == 'examen') {
         if (idMundo == 'basico') {
-          idSiguiente = 'intermedio_s1'; 
+          idSiguiente = 'intermedio_s1';
           nuevoNivelActual = 'Intermedio';
         } else if (idMundo == 'intermedio') {
-          idSiguiente = 'avanzado_s1'; 
+          idSiguiente = 'avanzado_s1';
           nuevoNivelActual = 'Avanzado';
         }
       }
@@ -102,15 +120,23 @@ class LearningService {
       // Lógica de rachas
       int rachaActual = data['racha'] ?? 0;
       int rachaMax = data['racha_maxima'] ?? 0;
-      DateTime hoy = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-      DateTime? ultima = data['ultima_partida'] != null ? (data['ultima_partida'] as Timestamp).toDate() : null;
+      DateTime hoy = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+      );
+      DateTime? ultima = data['ultima_partida'] != null
+          ? (data['ultima_partida'] as Timestamp).toDate()
+          : null;
 
       if (ultima != null) {
         DateTime ultimaFecha = DateTime(ultima.year, ultima.month, ultima.day);
         int diferencia = hoy.difference(ultimaFecha).inDays;
 
-        if (diferencia == 1) rachaActual++; // Jugó ayer y hoy, la racha sube
-        else if (diferencia > 1) rachaActual = 1; // Faltó más de un día, racha reiniciada
+        if (diferencia == 1) {
+          rachaActual++; // Jugó ayer y hoy, la racha sube
+        } else if (diferencia > 1)
+          rachaActual = 1; // Faltó más de un día, racha reiniciada
       } else {
         rachaActual = 1; // Jugador nuevo, hizo su primera partida
       }
@@ -118,7 +144,9 @@ class LearningService {
 
       // Lógica de Mejor Tiempo
       int mejorTiempoAnterior = data['mejor_tiempo'] ?? 9999;
-      int nuevoMejorTiempo = (tiempoSegundos < mejorTiempoAnterior) ? tiempoSegundos : mejorTiempoAnterior; // Solo guardamos si mejoro su tiempo
+      int nuevoMejorTiempo = (tiempoSegundos < mejorTiempoAnterior)
+          ? tiempoSegundos
+          : mejorTiempoAnterior; // Solo guardamos si mejoro su tiempo
 
       // Guardamos todo en un solo diccionario
       // Usamos FieldValue.increment() para sumar directo en la base de datos sin descargar la variable original
@@ -129,9 +157,13 @@ class LearningService {
         'racha': rachaActual,
         'racha_maxima': rachaMax,
         'mejor_tiempo': nuevoMejorTiempo,
-        'ultima_partida': FieldValue.serverTimestamp(), // Hora del servidor de Firebase
+        'ultima_partida':
+            FieldValue.serverTimestamp(), // Hora del servidor de Firebase
         'lecciones_completadas': FieldValue.arrayUnion([idActual]),
-        'subniveles_desbloqueados': FieldValue.arrayUnion([idActual, idSiguiente]),
+        'subniveles_desbloqueados': FieldValue.arrayUnion([
+          idActual,
+          idSiguiente,
+        ]),
       };
 
       if (nuevoNivelActual != null) {
@@ -140,9 +172,7 @@ class LearningService {
 
       // Actualizamos el diccionario interno de progreso del mundo actual
       if (!esRepeticion && idSubnivel != 'examen') {
-        updates['progreso_niveles'] = {
-          idMundo: FieldValue.increment(1)
-        };
+        updates['progreso_niveles'] = {idMundo: FieldValue.increment(1)};
       }
 
       // SetOptions(merge: true) actualiza solo los campos del diccionario sin borrar el resto del perfil.
@@ -151,22 +181,31 @@ class LearningService {
       // 5. Verificar Logros
       final snapshotActualizado = await userRef.get();
       await verificarLogros(snapshotActualizado.data()!, user.uid);
-
     } catch (e) {
       print("❌ Error en motor de progreso: $e");
     }
   }
-  
+
   // --- MOTOR DE LOGROS GLOBALES ---
-  Future<void> verificarLogros(Map<String, dynamic> userData, String userId) async {
+  Future<void> verificarLogros(
+    Map<String, dynamic> userData,
+    String userId,
+  ) async {
     try {
-      final configDoc = await _db.collection('app_config').doc('logros_globales').get();
+      final configDoc = await _db
+          .collection('app_config')
+          .doc('logros_globales')
+          .get();
       if (!configDoc.exists) return;
 
       List<dynamic> listaRaw = configDoc.data()?['lista_logros'] ?? [];
-      List<LogroModel> reglas = listaRaw.map((l) => LogroModel.fromMap(l)).toList();
+      List<LogroModel> reglas = listaRaw
+          .map((l) => LogroModel.fromMap(l))
+          .toList();
 
-      List<String> yaObtenidos = List<String>.from(userData['logros_desbloqueados'] ?? []);
+      List<String> yaObtenidos = List<String>.from(
+        userData['logros_desbloqueados'] ?? [],
+      );
       List<String> nuevosLogros = [];
 
       for (var logro in reglas) {
@@ -175,8 +214,10 @@ class LearningService {
 
           if (valorActual != null) {
             bool seCumple = false;
-            if (logro.operacion == "mayor_que") seCumple = valorActual >= logro.valorMeta;
-            else if (logro.operacion == "menor_que") seCumple = valorActual > 0 && valorActual <= logro.valorMeta;
+            if (logro.operacion == "mayor_que") {
+              seCumple = valorActual >= logro.valorMeta;
+            } else if (logro.operacion == "menor_que")
+              seCumple = valorActual > 0 && valorActual <= logro.valorMeta;
 
             if (seCumple) nuevosLogros.add(logro.id);
           }
@@ -194,15 +235,24 @@ class LearningService {
   }
 
   // --- EXÁMENES FINALES ---
-  Future<List<QuestionModel>> getExamenFinal(String levelId, {int preguntasPorSubnivel = 2}) async {
+  Future<List<QuestionModel>> getExamenFinal(
+    String levelId, {
+    int preguntasPorSubnivel = 2,
+  }) async {
     List<QuestionModel> examenFinal = [];
-    
+
     try {
-      var sublevelsSnap = await _db.collection('content').doc(levelId).collection('sublevels').get();
+      var sublevelsSnap = await _db
+          .collection('content')
+          .doc(levelId)
+          .collection('sublevels')
+          .get();
 
       for (var subDoc in sublevelsSnap.docs) {
         var qSnap = await subDoc.reference.collection('questions').get();
-        var questions = qSnap.docs.map((doc) => QuestionModel.fromMap(doc.data(), doc.id)).toList();
+        var questions = qSnap.docs
+            .map((doc) => QuestionModel.fromMap(doc.data(), doc.id))
+            .toList();
 
         questions.shuffle();
         examenFinal.addAll(questions.take(preguntasPorSubnivel));
