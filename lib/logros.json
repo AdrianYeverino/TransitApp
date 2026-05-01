@@ -1,0 +1,119 @@
+[
+  {
+    "id": "licencia_aprendiz",
+    "titulo": "Licencia de Aprendiz",
+    "descripcion": "Completaste tu primera lección vial",
+    "metrica_usuario": "lecciones_jugadas",
+    "operacion": "mayor_que",
+    "valor_meta": 0,
+    "recompensaXP": 50
+  },
+  {
+    "id": "ciudadano_ejemplar",
+    "titulo": "Ciudadano Ejemplar",
+    "descripcion": "Terminaste 10 lecciones completas",
+    "metrica_usuario": "lecciones_jugadas",
+    "operacion": "mayor_que",
+    "valor_meta": 9,
+    "recompensaXP": 100
+  },
+  {
+    "id": "estudiante_estrella",
+    "titulo": "Estudiante Estrella",
+    "descripcion": "Has completado 50 lecciones. ¡Qué dedicación!",
+    "metrica_usuario": "lecciones_jugadas",
+    "operacion": "mayor_que",
+    "valor_meta": 49,
+    "recompensaXP": 300
+  },
+  {
+    "id": "basico_complete",
+    "titulo": "Maestro Básico",
+    "descripcion": "Completaste todo el nivel básico",
+    "metrica_usuario": "progreso_niveles.basico",
+    "operacion": "mayor_que",
+    "valor_meta": 3,
+    "recompensaXP": 100
+  },
+  {
+    "id": "intermedio_complete",
+    "titulo": "Piloto Intermedio",
+    "descripcion": "Superaste los desafíos del nivel intermedio",
+    "metrica_usuario": "progreso_niveles.intermedio",
+    "operacion": "mayor_que",
+    "valor_meta": 3,
+    "recompensaXP": 250
+  },
+  {
+    "id": "avanzado_complete",
+    "titulo": "As del Volante",
+    "descripcion": "Dominaste el nivel avanzado con éxito",
+    "metrica_usuario": "progreso_niveles.avanzado",
+    "operacion": "mayor_que",
+    "valor_meta": 3,
+    "recompensaXP": 500
+  },
+  {
+    "id": "racha_3",
+    "titulo": "Constancia Inicial",
+    "descripcion": "Cumpliste 3 días seguidos de racha",
+    "metrica_usuario": "racha_maxima",
+    "operacion": "mayor_que",
+    "valor_meta": 2,
+    "recompensaXP": 50
+  },
+  {
+    "id": "racha_7",
+    "titulo": "Semana Imparable",
+    "descripcion": "Regresaste a la app 7 días seguidos",
+    "metrica_usuario": "racha_maxima",
+    "operacion": "mayor_que",
+    "valor_meta": 6,
+    "recompensaXP": 150
+  },
+  {
+    "id": "xp_500",
+    "titulo": "Acumulador de XP",
+    "descripcion": "Tus primeros 500 XP acumulados",
+    "metrica_usuario": "xp",
+    "operacion": "mayor_que",
+    "valor_meta": 499,
+    "recompensaXP": 100
+  },
+  {
+    "id": "conductor_experto",
+    "titulo": "Conductor Experto",
+    "descripcion": "Acumulaste 1000 XP en total",
+    "metrica_usuario": "xp",
+    "operacion": "mayor_que",
+    "valor_meta": 999,
+    "recompensaXP": 200
+  },
+  {
+    "id": "leyenda_asfalto",
+    "titulo": "Leyenda del Asfalto",
+    "descripcion": "Llegaste a los 5000 XP. ¡Eres un maestro de las reglas de tránsito!",
+    "metrica_usuario": "xp",
+    "operacion": "mayor_que",
+    "valor_meta": 4999,
+    "recompensaXP": 1000
+  },
+  {
+    "id": "veloz_15",
+    "titulo": "Flash",
+    "descripcion": "Completaste un subnivel en menos de 15 segundos",
+    "metrica_usuario": "mejor_tiempo",
+    "operacion": "menor_que",
+    "valor_meta": 15,
+    "recompensaXP": 500
+  },
+  {
+    "id": "perfeccionista",
+    "titulo": "Perfeccionista",
+    "descripcion": "Sacaste 100% en tu primer examen sin errores",
+    "metrica_usuario": "examenes_perfectos",
+    "operacion": "mayor_que",
+    "valor_meta": 0,
+    "recompensaXP": 200
+  }
+]

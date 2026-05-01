@@ -6,12 +6,17 @@ import 'package:transitapp/features/learning/presentation/pages/perfil_screen.da
 import 'features/auth/presentation/login_screen.dart';
 import 'features/learning/presentation/pages/home_page.dart';
 import 'services/auth_service.dart';
+import 'features/learning/data/services/logros_service.dart'; // Descomenta cuando uses LogrosService
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // ============ CARGA DE LOGROS ============
+  // Descomenta la siguiente línea para cargar/actualizar los logros desde assets/logros.json a Firestore
+  // Solo necesitas hacerlo UNA VEZ cada vez que actualices el archivo logros.json
+  await LogrosService.uploadLogros();
+  // ==========================================
 
   // Carga de datos de mi poderosisimo seeder
   //print("Cargando...");
@@ -19,7 +24,7 @@ void main() async {
   //print("Seeder cargado, espero sin problemas");
 
   // Proteger y verificar usuarios viejos
-  final AuthService authService = AuthService(); 
+  final AuthService authService = AuthService();
   await authService.actualizarUsuariosAntiguos();
 
   runApp(const TransitApp());
@@ -38,12 +43,10 @@ class TransitApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
         useMaterial3: true,
       ),
-      
-      routes: {
-        '/perfil': (context) => const PerfilScreen(),
-      },
 
-      // Aquí se mueve todo 
+      routes: {'/perfil': (context) => const PerfilScreen()},
+
+      // Aquí se mueve todo
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
