@@ -6,7 +6,7 @@ import 'package:transitapp/features/learning/presentation/pages/perfil_screen.da
 import 'features/auth/presentation/login_screen.dart';
 import 'features/learning/presentation/pages/home_page.dart';
 import 'services/auth_service.dart';
-import 'features/learning/data/services/logros_service.dart'; // Descomenta cuando uses LogrosService
+//import 'features/learning/data/services/logros_service.dart'; // Descomenta cuando uses LogrosService
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,7 @@ void main() async {
   // ============ CARGA DE LOGROS ============
   // Descomenta la siguiente línea para cargar/actualizar los logros desde assets/logros.json a Firestore
   // Solo necesitas hacerlo UNA VEZ cada vez que actualices el archivo logros.json
-  await LogrosService.uploadLogros();
+  //await LogrosService.uploadLogros();
   // ==========================================
 
   // Carga de datos de mi poderosisimo seeder
