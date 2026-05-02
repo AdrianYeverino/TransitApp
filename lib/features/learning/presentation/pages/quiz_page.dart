@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/services/learning_service.dart';
+import '../../data/services/logros_service.dart';
 import '../../data/models/question_model.dart';
+import '../../data/models/logro_model.dart';
 import 'package:transitapp/features/learning/presentation/widgets/games/quiz_router.dart';
-import 'package:transitapp/features/learning/presentation/widgets/games/components/feedback_bottom_sheet.dart'; 
+import 'package:transitapp/features/learning/presentation/widgets/games/components/feedback_bottom_sheet.dart';
+import 'package:transitapp/features/learning/presentation/widgets/logro_notification_widget.dart';
 
 class QuizPage extends StatefulWidget {
   final String levelId;
@@ -15,12 +18,12 @@ class QuizPage extends StatefulWidget {
   final String nextSubLevelId;
 
   const QuizPage({
-    super.key, 
-    required this.levelId, 
+    super.key,
+    required this.levelId,
     required this.subLevelId,
     required this.title,
     required this.xpRecompensa,
-    this.isFinalExam = false, 
+    this.isFinalExam = false,
     required this.nextSubLevelId,
   });
 
@@ -29,29 +32,42 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  final LearningService _service = LearningService(); // Conexión con la base de datos
+  final LearningService _service =
+      LearningService(); // Conexión con la base de datos
   List<QuestionModel> _questions = [];
   bool _isLoading = true; // Para mostrar la ruedita de carga al inicio
   int _currentIndex = 0; // Empezamos en el número de pregunta 0
-  
+  bool _isFinalizando =
+      false; // Flag para evitar múltiples clicks en última pregunta
+
   late DateTime _startTime; // Definimos un cronómetro
   int _aciertos = 0; // Contador de aciertos
+
+  final List<LogroModel> _logrosDesbloqueados =
+      []; // Logros desbloqueados en esta sesión
 
   @override
   void initState() {
     super.initState();
-    _startTime = DateTime.now(); // Empezamos el cronómetro en cuanto se abre la pantalla
+    _startTime =
+        DateTime.now(); // Empezamos el cronómetro en cuanto se abre la pantalla
     _loadQuestions(); // Mandamos a llamar las preguntas de Firebase
   }
 
   Future<void> _loadQuestions() async {
     List<QuestionModel> questions;
-    
+
     // ¿Es un examen final o una lección normal?
     if (widget.isFinalExam) {
-      questions = await _service.getExamenFinal(widget.levelId, preguntasPorSubnivel: 2);
+      questions = await _service.getExamenFinal(
+        widget.levelId,
+        preguntasPorSubnivel: 2,
+      );
     } else {
-      questions = await _service.getQuestions(widget.levelId, widget.subLevelId);
+      questions = await _service.getQuestions(
+        widget.levelId,
+        widget.subLevelId,
+      );
     }
 
     // Este if (mounted) significa "Si el usuario no ha cerrado esta pantalla mientras descargábamos, actualiza la UI".
@@ -73,7 +89,8 @@ class _QuizPageState extends State<QuizPage> {
     QuestionModel currentQ = _questions[_currentIndex];
     showModalBottomSheet(
       context: context,
-      isDismissible: false, // No dejamos que la cierre tocando afuera de la tarjetita 
+      isDismissible:
+          false, // No dejamos que la cierre tocando afuera de la tarjetita
       enableDrag: false, // Ni arrastarla
       backgroundColor: Colors.transparent,
       builder: (context) => FeedbackBottomSheet(
@@ -93,27 +110,37 @@ class _QuizPageState extends State<QuizPage> {
       setState(() => _currentIndex++);
     } else {
       // Si ya no hay preguntas, se acabó el juego
-      _showFinishDialog();
+      // Proteger contra múltiples calls
+      if (!_isFinalizando) {
+        _isFinalizando = true;
+        _showFinishDialog();
+      }
     }
   }
 
-  // Resultados finales
+  // Resultados finales con verificación de logros
   Future<void> _showFinishDialog() async {
     // Detenemos el cronómetro y calculamos los segundos totales
     int segundos = DateTime.now().difference(_startTime).inSeconds;
 
     // Mostramos una ruedita de carga bloqueando la pantalla mientras guardamos en Firebase
-    showDialog(
-      context: context, 
-      barrierDismissible: false, 
-      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.white))
-    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) =>
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
 
     // Doxxeamos al usuario sacamos su nombre para esta tarjeta
     String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     String nombreUsuario = 'Piloto';
     try {
-      var userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      var userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       if (userDoc.exists && userDoc.data() != null) {
         nombreUsuario = userDoc.data()!['nombre'] ?? 'Piloto';
       }
@@ -126,19 +153,50 @@ class _QuizPageState extends State<QuizPage> {
       xpGanada: widget.xpRecompensa,
       idMundo: widget.levelId,
       idSubnivel: widget.subLevelId,
-      idSiguienteSubnivel: widget.nextSubLevelId, 
+      idSiguienteSubnivel: widget.nextSubLevelId,
       tiempoSegundos: segundos,
     );
 
-    if (mounted) Navigator.pop(context); // Cierra la ruedita
+    // ========== VERIFICAR LOGROS AL SALIR DEL NIVEL ==========
+    // Verificar logros desbloqueados por esta acción
+    List<LogroModel> logrosRecientementeDesbloqueados = [];
+    try {
+      // Inicializar el campo de logros si no existe (para usuarios nuevos/antiguos)
+      await LogrosService.inicializarLogrosUsuario(uid);
+      
+      // Verificar logros por lecciones jugadas y obtener los nuevos desbloqueados
+      logrosRecientementeDesbloqueados =
+          await LogrosService.verificarYDesbloquearLogro(uid, 'lecciones_jugadas');
+      
+      print("✅ Logros desbloqueados: ${logrosRecientementeDesbloqueados.length}");
+    } catch (e) {
+      print("Error verificando logros: $e");
+    }
+
+    // Cerrar el diálogo de carga esperando a que se procese
+    if (mounted) {
+      Navigator.pop(context);
+      // Pequeño delay para asegurar que el Navigator.pop() se procese completamente
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
+    // Mostrar notificaciones de logros desbloqueados
+    if (logrosRecientementeDesbloqueados.isNotEmpty && mounted) {
+      for (final logro in logrosRecientementeDesbloqueados) {
+        await _mostrarNotificacionLogro(logro);
+      }
+    }
 
     // Aquí es FRONTEND para mostrar las estrellitas, el nombre, los aciertos y el botón de volver.
     if (mounted) {
       showDialog(
-        context: context, 
+        context: context,
         barrierDismissible: false,
-        builder: (_) => Dialog( // Todo el diseño visual de la tarjeta blanca con el resultado
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        builder: (_) => Dialog(
+          // Todo el diseño visual de la tarjeta blanca con el resultado
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           elevation: 10,
           backgroundColor: Colors.white,
           child: Padding(
@@ -150,7 +208,11 @@ class _QuizPageState extends State<QuizPage> {
                 const SizedBox(height: 15),
                 Text(
                   "¡Excelente, $nombreUsuario!",
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0D47A1),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 5),
@@ -167,21 +229,41 @@ class _QuizPageState extends State<QuizPage> {
                   children: [
                     Column(
                       children: [
-                        Text("Aciertos", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                        Text(
+                          "Aciertos",
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
                         const SizedBox(height: 5),
                         Text(
                           "$_aciertos / ${_questions.length}",
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
                         ),
                       ],
                     ),
                     Column(
                       children: [
-                        Text("Tiempo", style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                        Text(
+                          "Tiempo",
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
+                        ),
                         const SizedBox(height: 5),
                         Text(
                           "${segundos}s",
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
+                          ),
                         ),
                       ],
                     ),
@@ -195,20 +277,54 @@ class _QuizPageState extends State<QuizPage> {
                     onPressed: () {
                       Navigator.pop(context); // Cierra diálogo
                       Navigator.pop(context); // Vuelve al mapa
-                    }, 
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0D47A1),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                     ),
-                    child: const Text("VOLVER AL MAPA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    child: const Text(
+                      "VOLVER AL MAPA",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
                   ),
-                )
+                ),
               ],
             ),
           ),
-        )
+        ),
       );
     }
+  }
+
+  /// Muestra una notificación de logro desbloqueado con animación
+  Future<void> _mostrarNotificacionLogro(LogroModel logro) {
+    return showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.3),
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.topCenter,
+          child: ScaleTransition(
+            scale: animation,
+            child: SafeArea(
+              child: LogroNotificationWidget(
+                logro: logro,
+                onClose: () => Navigator.of(context).pop(),
+                duracionVisible: const Duration(seconds: 5),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   // Lo que ve nuestro usuario
@@ -216,32 +332,32 @@ class _QuizPageState extends State<QuizPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator()) 
-        : Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                // Barra de progreso
-                LinearProgressIndicator(
-                  value: (_currentIndex + 1) / _questions.length,
-                  minHeight: 10,
-                  borderRadius: BorderRadius.circular(10),
-                  backgroundColor: Colors.grey.shade200,
-                  color: const Color(0xFF0D47A1),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  // Enrutador de preguntas
-                  child: QuizRouter(
-                    key: ValueKey(_questions[_currentIndex].id), 
-                    question: _questions[_currentIndex], 
-                    onAnswered: _answerQuestion, 
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  // Barra de progreso
+                  LinearProgressIndicator(
+                    value: (_currentIndex + 1) / _questions.length,
+                    minHeight: 10,
+                    borderRadius: BorderRadius.circular(10),
+                    backgroundColor: Colors.grey.shade200,
+                    color: const Color(0xFF0D47A1),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  Expanded(
+                    // Enrutador de preguntas
+                    child: QuizRouter(
+                      key: ValueKey(_questions[_currentIndex].id),
+                      question: _questions[_currentIndex],
+                      onAnswered: _answerQuestion,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
     );
   }
 }
