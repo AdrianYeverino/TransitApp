@@ -43,9 +43,6 @@ class _QuizPageState extends State<QuizPage> {
   late DateTime _startTime; // Definimos un cronómetro
   int _aciertos = 0; // Contador de aciertos
 
-  final List<LogroModel> _logrosDesbloqueados =
-      []; // Logros desbloqueados en esta sesión
-
   @override
   void initState() {
     super.initState();
@@ -158,16 +155,22 @@ class _QuizPageState extends State<QuizPage> {
     );
 
     // ========== VERIFICAR LOGROS AL SALIR DEL NIVEL ==========
-    // Verificar logros desbloqueados por esta acción
     List<LogroModel> logrosRecientementeDesbloqueados = [];
     try {
-      // Inicializar el campo de logros si no existe (para usuarios nuevos/antiguos)
-      await LogrosService.inicializarLogrosUsuario(uid);
-      
-      // Verificar logros por lecciones jugadas y obtener los nuevos desbloqueados
+      await LogrosService.sincronizarAlmacenamientoLogros(uid);
+      final idsAntes = (await LogrosService.obtenerLogrosDesbloqueados(uid))
+          .map((l) => l.id)
+          .toSet();
+      await LogrosService.verificarYDesbloquearPorMetricas(uid, const [
+        'lecciones_jugadas',
+        'progreso_niveles',
+        'xp',
+        'racha_maxima',
+        'mejor_tiempo',
+      ]);
+      final despues = await LogrosService.obtenerLogrosDesbloqueados(uid);
       logrosRecientementeDesbloqueados =
-          await LogrosService.verificarYDesbloquearLogro(uid, 'lecciones_jugadas');
-      
+          despues.where((l) => !idsAntes.contains(l.id)).toList();
       print("✅ Logros desbloqueados: ${logrosRecientementeDesbloqueados.length}");
     } catch (e) {
       print("Error verificando logros: $e");
@@ -302,29 +305,8 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
-  /// Muestra una notificación de logro desbloqueado con animación
   Future<void> _mostrarNotificacionLogro(LogroModel logro) {
-    return showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.3),
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return Align(
-          alignment: Alignment.topCenter,
-          child: ScaleTransition(
-            scale: animation,
-            child: SafeArea(
-              child: LogroNotificationWidget(
-                logro: logro,
-                onClose: () => Navigator.of(context).pop(),
-                duracionVisible: const Duration(seconds: 5),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    return showLogroUnlockNotification(context, logro);
   }
 
   // Lo que ve nuestro usuario

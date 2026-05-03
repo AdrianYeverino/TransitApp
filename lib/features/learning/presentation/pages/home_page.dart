@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'level_screen.dart'; 
+import 'package:transitapp/features/learning/data/services/logros_service.dart';
+import 'package:transitapp/features/learning/presentation/widgets/logro_notification_widget.dart';
+import 'level_screen.dart';
 import 'dart:ui';
 
 class HomePage extends StatefulWidget {
@@ -13,6 +15,31 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final String _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _aplicarLogrosRetroactivosYMotrar();
+    });
+  }
+
+  /// Usuarios antiguos: sincroniza almacenes, otorga logros ya ganados y muestra la misma UI que al terminar un quiz.
+  Future<void> _aplicarLogrosRetroactivosYMotrar() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.isEmpty) return;
+
+    try {
+      final nuevos = await LogrosService.aplicarLogrosRetroactivos(uid);
+      if (!mounted || nuevos.isEmpty) return;
+      for (final logro in nuevos) {
+        if (!mounted) break;
+        await showLogroUnlockNotification(context, logro);
+      }
+    } catch (_) {
+      // Evitar bloquear la home si Firestore falla
+    }
+  }
 
   void _signOut() async {
     await FirebaseAuth.instance.signOut();
@@ -85,8 +112,9 @@ class _HomePageState extends State<HomePage> {
                               elevation: 4,
                               offset: const Offset(0, 40),
                               onSelected: (String opcion) {
-                                if (opcion == 'perfil') Navigator.pushNamed(context, '/perfil');
-                                else if (opcion == 'logout') _signOut();
+                                if (opcion == 'perfil') {
+                                  Navigator.pushNamed(context, '/perfil');
+                                } else if (opcion == 'logout') _signOut();
                               },
                               itemBuilder: (BuildContext context) => [
                                 const PopupMenuItem<String>(

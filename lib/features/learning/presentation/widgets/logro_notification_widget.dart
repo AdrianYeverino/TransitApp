@@ -198,3 +198,31 @@ class _LogroNotificationWidgetState extends State<LogroNotificationWidget>
     );
   }
 }
+
+/// Muestra el overlay de logro desbloqueado (mismo comportamiento que al terminar un quiz).
+Future<void> showLogroUnlockNotification(
+  BuildContext context,
+  LogroModel logro,
+) {
+  return showGeneralDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    barrierColor: Colors.black.withValues(alpha: 0.3),
+    transitionDuration: const Duration(milliseconds: 500),
+    pageBuilder: (dialogContext, animation, secondaryAnimation) {
+      return Align(
+        alignment: Alignment.topCenter,
+        child: ScaleTransition(
+          scale: animation,
+          child: SafeArea(
+            child: LogroNotificationWidget(
+              logro: logro,
+              onClose: () => Navigator.of(dialogContext).pop(),
+              duracionVisible: const Duration(seconds: 5),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}

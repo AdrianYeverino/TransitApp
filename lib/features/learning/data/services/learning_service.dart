@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/level_model.dart';
 import '../models/sublevel_model.dart';
 import '../models/question_model.dart';
-import '../models/logro_model.dart';
 
 class LearningService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;

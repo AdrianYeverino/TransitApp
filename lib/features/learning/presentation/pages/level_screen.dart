@@ -41,11 +41,13 @@ class LevelScreen extends StatelessWidget {
             .orderBy('orden')
             .get(),
         builder: (context, snapshotSublevels) {
-          if (snapshotSublevels.connectionState == ConnectionState.waiting)
+          if (snapshotSublevels.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
           if (!snapshotSublevels.hasData ||
-              snapshotSublevels.data!.docs.isEmpty)
+              snapshotSublevels.data!.docs.isEmpty) {
             return const Center(child: Text("Próximamente..."));
+          }
 
           final sublevels = snapshotSublevels.data!.docs;
 
@@ -69,8 +71,9 @@ class LevelScreen extends StatelessWidget {
               // 2. Progreso
               int cantCompletadas = 0;
               for (var doc in sublevels) {
-                if (completados.contains('${levelId}_${doc.id}'))
+                if (completados.contains('${levelId}_${doc.id}')) {
                   cantCompletadas++;
+                }
               }
               double porcentaje = cantCompletadas / (sublevels.length + 1);
 
@@ -79,7 +82,7 @@ class LevelScreen extends StatelessWidget {
               if (examenCompletado) porcentaje = 1.0;
 
               // Función para verificar desbloqueo robusto (sincroniza completados y desbloqueados)
-              bool _isSubnivelDesbloqueado(int index, String tagSubnivel) {
+              bool isSubnivelDesbloqueado(int index, String tagSubnivel) {
                 // 1. Si ya está completado, definitivamente está desbloqueado
                 if (completados.contains(tagSubnivel)) return true;
 
@@ -139,7 +142,7 @@ class LevelScreen extends StatelessWidget {
                             : sublevels[index + 1].id;
 
                         // Verificación robusta que sincroniza ambas listas
-                        bool isUnlocked = _isSubnivelDesbloqueado(
+                        bool isUnlocked = isSubnivelDesbloqueado(
                           index,
                           tagSubnivel,
                         );

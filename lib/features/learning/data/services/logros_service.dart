@@ -81,17 +81,57 @@ class LogrosService {
     }
   }
 
+  /// Une `users/{id}.logros_desbloqueados` con `users/{id}/logros/desbloqueados`
+  /// para que perfiles antiguos y el sistema nuevo vean la misma lista (sin otorgar XP).
+  static Future<void> sincronizarAlmacenamientoLogros(String userId) async {
+    try {
+      final userRef = _db.collection('users').doc(userId);
+      final userDoc = await userRef.get();
+      if (!userDoc.exists) return;
+
+      final desdeUsuario = Set<String>.from(
+        List<String>.from(userDoc.data()?['logros_desbloqueados'] ?? []),
+      );
+      final subSnap = await userRef.collection('logros').doc('desbloqueados').get();
+      final desdeSub = Set<String>.from(
+        List<String>.from(subSnap.data()?['logros'] ?? []),
+      );
+
+      if (desdeUsuario.length == desdeSub.length &&
+          desdeUsuario.containsAll(desdeSub) &&
+          desdeSub.containsAll(desdeUsuario)) {
+        return;
+      }
+
+      final merged = desdeUsuario.union(desdeSub).toList()..sort();
+
+      await userRef.collection('logros').doc('desbloqueados').set({
+        'logros': merged,
+        'ultima_actualizacion': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      await userRef.set({
+        'logros_desbloqueados': merged,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print("❌ Error sincronizando logros: $e");
+    }
+  }
+
   /// TAREA 3: Aplica logros retroactivamente a un usuario
-  /// Desbloquea automáticamente todos los logros que ya ha completado según su historial
-  static Future<void> aplicarLogrosRetroactivos(String userId) async {
+  /// Desbloquea automáticamente todos los logros que ya ha completado según su historial.
+  /// Devuelve los [LogroModel] recién desbloqueados (p. ej. para mostrar notificaciones).
+  static Future<List<LogroModel>> aplicarLogrosRetroactivos(String userId) async {
     try {
       print("⏳ Aplicando logros retroactivos para usuario: $userId");
+
+      await sincronizarAlmacenamientoLogros(userId);
 
       // Obtener datos del usuario
       final userDoc = await _db.collection('users').doc(userId).get();
       if (!userDoc.exists) {
         print("⚠️ Usuario no encontrado");
-        return;
+        return [];
       }
 
       final datosUsuario = userDoc.data() ?? {};
@@ -103,7 +143,7 @@ class LogrosService {
           .get();
       if (!logrosGlobalesDoc.exists) {
         print("⚠️ Logros globales no configurados");
-        return;
+        return [];
       }
 
       final List<dynamic> logrosData = logrosGlobalesDoc['lista_logros'] ?? [];
@@ -119,7 +159,7 @@ class LogrosService {
           .doc('desbloqueados')
           .get();
       final Set<String> logrosDesbloqueados = Set<String>.from(
-        userLogrosDoc.data()?['logros'] ?? [],
+        List<String>.from(userLogrosDoc.data()?['logros'] ?? []),
       );
 
       num xpGanado = 0;
@@ -151,37 +191,57 @@ class LogrosService {
         // Sumar XP al perfil del usuario (retroactivamente)
         await _db.collection('users').doc(userId).update({
           'xp': FieldValue.increment(xpGanado.toInt()),
+          'logros_desbloqueados': FieldValue.arrayUnion(nuevosLogros),
         });
 
         print(
           "✅ $userId desbloqueó ${nuevosLogros.length} logros retroactivamente (+$xpGanado XP)",
         );
         print("   Logros desbloqueados: $nuevosLogros");
-      } else {
-        print(
-          "ℹ️ $userId ya tiene todos los logros disponibles o no cumple condiciones",
-        );
+
+        return logros.where((l) => nuevosLogros.contains(l.id)).toList();
       }
+
+      print(
+        "ℹ️ $userId ya tiene todos los logros disponibles o no cumple condiciones",
+      );
+      return [];
     } catch (e) {
       print("❌ Error aplicando logros retroactivos: $e");
       rethrow;
     }
   }
 
-  /// Verifica si un usuario desbloquea un logro basado en una acción/métrica actual
-  /// Se ejecuta después de cada cambio en las estadísticas del usuario
-  static Future<void> verificarYDesbloquearLogro(
+  static bool _logroDependeDeMetricas(
+    LogroModel logro,
+    Set<String> metricas,
+  ) {
+    for (final m in metricas) {
+      if (m.isEmpty) continue;
+      if (logro.metricaUsuario == m ||
+          logro.metricaUsuario.startsWith('$m.')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Verifica logros cuyas métricas encajan con algún prefijo en [metricasActualizadas].
+  static Future<void> verificarYDesbloquearPorMetricas(
     String userId,
-    String metricaActualizada,
+    Iterable<String> metricasActualizadas,
   ) async {
+    final prefijos =
+        metricasActualizadas.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (prefijos.isEmpty) return;
+
     try {
-      // Obtener datos del usuario
-      final userDoc = await _db.collection('users').doc(userId).get();
+      final userRef = _db.collection('users').doc(userId);
+      final userDoc = await userRef.get();
       if (!userDoc.exists) return;
 
       final datosUsuario = userDoc.data() ?? {};
 
-      // Obtener lista de logros globales
       final logrosGlobalesDoc = await _db
           .collection('app_config')
           .doc('logros_globales')
@@ -190,57 +250,60 @@ class LogrosService {
 
       final List<dynamic> logrosData = logrosGlobalesDoc['lista_logros'] ?? [];
 
-      // Obtener logros ya desbloqueados del usuario
-      final userLogrosDoc = await _db
-          .collection('users')
-          .doc(userId)
+      final userLogrosDoc = await userRef
           .collection('logros')
           .doc('desbloqueados')
           .get();
       final Set<String> logrosDesbloqueados = Set<String>.from(
-        userLogrosDoc.data()?['logros'] ?? [],
+        List<String>.from(userLogrosDoc.data()?['logros'] ?? []),
       );
 
       num xpGanado = 0;
+      final List<String> nuevosIds = [];
 
-      // Revisar solo logros que dependen de la métrica actualizada
       for (final logroData in logrosData) {
         final logro = LogroModel.fromMap(logroData as Map<String, dynamic>);
 
-        // Solo verificar si el logro depende de esta métrica
-        if (logro.metricaUsuario.startsWith(metricaActualizada) &&
-            !logrosDesbloqueados.contains(logro.id)) {
-          if (evaluarCondicionLogro(logro, datosUsuario)) {
-            logrosDesbloqueados.add(logro.id);
-            xpGanado += logro.recompensaXP;
+        if (!_logroDependeDeMetricas(logro, prefijos)) continue;
+        if (logrosDesbloqueados.contains(logro.id)) continue;
 
-            print(
-              "🏆 $userId desbloqueó: ${logro.titulo} (+${logro.recompensaXP} XP)",
-            );
-          }
+        if (evaluarCondicionLogro(logro, datosUsuario)) {
+          logrosDesbloqueados.add(logro.id);
+          nuevosIds.add(logro.id);
+          xpGanado += logro.recompensaXP;
+
+          print(
+            "🏆 $userId desbloqueó: ${logro.titulo} (+${logro.recompensaXP} XP)",
+          );
         }
       }
 
-      if (xpGanado > 0) {
-        // Actualizar lista de logros desbloqueados
-        await _db
-            .collection('users')
-            .doc(userId)
-            .collection('logros')
-            .doc('desbloqueados')
-            .set({
-              'logros': logrosDesbloqueados.toList(),
-              'ultima_actualizacion': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
+      if (nuevosIds.isNotEmpty) {
+        await userRef.collection('logros').doc('desbloqueados').set({
+          'logros': logrosDesbloqueados.toList(),
+          'ultima_actualizacion': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
 
-        // Sumar XP al perfil
-        await _db.collection('users').doc(userId).update({
-          'xp': FieldValue.increment(xpGanado.toInt()),
-        });
+        final updates = <String, dynamic>{
+          'logros_desbloqueados': FieldValue.arrayUnion(nuevosIds),
+        };
+        if (xpGanado > 0) {
+          updates['xp'] = FieldValue.increment(xpGanado.toInt());
+        }
+        await userRef.update(updates);
       }
     } catch (e) {
       print("❌ Error verificando logros: $e");
     }
+  }
+
+  /// Verifica si un usuario desbloquea un logro basado en una acción/métrica actual
+  /// Se ejecuta después de cada cambio en las estadísticas del usuario
+  static Future<void> verificarYDesbloquearLogro(
+    String userId,
+    String metricaActualizada,
+  ) {
+    return verificarYDesbloquearPorMetricas(userId, [metricaActualizada]);
   }
 
   /// Obtiene la lista de logros desbloqueados del usuario
@@ -248,15 +311,21 @@ class LogrosService {
     String userId,
   ) async {
     try {
-      final userLogrosDoc = await _db
-          .collection('users')
-          .doc(userId)
+      final userRef = _db.collection('users').doc(userId);
+      final userSnap = await userRef.get();
+      final desdeDoc = Set<String>.from(
+        List<String>.from(userSnap.data()?['logros_desbloqueados'] ?? []),
+      );
+
+      final userLogrosDoc = await userRef
           .collection('logros')
           .doc('desbloqueados')
           .get();
-      final logrosIds = List<String>.from(
-        userLogrosDoc.data()?['logros'] ?? [],
+      final desdeSub = Set<String>.from(
+        List<String>.from(userLogrosDoc.data()?['logros'] ?? []),
       );
+
+      final logrosIds = desdeDoc.union(desdeSub);
 
       final logrosGlobalesDoc = await _db
           .collection('app_config')
